@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="MediaBrowser.Common, Version=10.1.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\MediaBrowser.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="MediaBrowser.Controller, Version=10.1.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\MediaBrowser.Controller.dll</HintPath>
+    </Reference>
+    <Reference Include="MediaBrowser.Model, Version=10.1.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\MediaBrowser.Model.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
+  </ItemGroup>
+
+</Project>
