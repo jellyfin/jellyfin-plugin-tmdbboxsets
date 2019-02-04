@@ -1,6 +1,6 @@
 ﻿using MediaBrowser.Model.Plugins;
 
-namespace TMDbCollections.Configuration
+namespace TMDbBoxSets.Configuration
 {
     public class PluginConfiguration : BasePluginConfiguration
     {

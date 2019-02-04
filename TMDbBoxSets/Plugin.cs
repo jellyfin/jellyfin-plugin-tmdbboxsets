@@ -4,19 +4,21 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
-using TMDbCollections.Configuration;
+using TMDbBoxSets.Configuration;
 
-namespace TMDbCollections
+namespace TMDbBoxSets
 {
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
         public Plugin(IApplicationPaths appPaths, IXmlSerializer xmlSerializer)
             : base(appPaths, xmlSerializer)
         {
+            Instance = this;
         }
 
-        public override string Name => "TMDb Collections";
+        public override string Name => "TMDb Box Sets";
 
+        public static Plugin Instance { get; private set; }
 
         public override string Description
             => "Automatically create movie box sets based on TMDb collections";
@@ -32,7 +34,7 @@ namespace TMDbCollections
             {
                 new PluginPageInfo
                 {
-                    Name = "TMDb Collections",
+                    Name = "TMDb Box Sets",
                     EmbeddedResourcePath = GetType().Namespace + ".configurationpage.html"
                 }
             };

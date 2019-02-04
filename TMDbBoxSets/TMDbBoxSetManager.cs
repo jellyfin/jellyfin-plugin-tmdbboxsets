@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -11,16 +12,16 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using Microsoft.Extensions.Logging;
 
-namespace TMDbCollections
+namespace TMDbBoxSets
 {
-    public class TMDbCollectionCreator : IServerEntryPoint
+    public class TMDbBoxSetManager : IServerEntryPoint
     {
         private readonly ILibraryManager _libraryManager;
         private readonly ICollectionManager _collectionManager;
         private readonly IProviderManager _providerManager;
         private readonly ILogger _logger;
 
-        public TMDbCollectionCreator(ILibraryManager libraryManager, ICollectionManager collectionManager, IProviderManager providerManager, ILogger logger)
+        public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, IProviderManager providerManager, ILogger logger)
         {
             _libraryManager = libraryManager;
             _collectionManager = collectionManager;
@@ -146,9 +147,11 @@ namespace TMDbCollections
             _libraryManager.ItemUpdated -= OnLibraryManagerItemUpdated;
         }
 
-        public void Run()
+        public Task RunAsync()
         {
             _libraryManager.ItemUpdated += OnLibraryManagerItemUpdated;
+
+            return Task.CompletedTask;
         }
     }
 }
