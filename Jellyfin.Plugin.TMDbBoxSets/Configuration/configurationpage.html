@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TMDb Box Sets</title>
+</head>
+<body>
+<div data-role="page" class="page type-interior pluginConfigurationPage tbsConfigurationPage" data-require="emby-input,emby-button">
+
+    <div data-role="content">
+        <div class="content-primary">
+            <form class="tbsConfigurationPage">
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="minimum-movies">Minimum number of movies:</label>
+                    <input type="number" id="minimum-movies" name="minimum-movies" is="emby-input"/>
+                    <div class="fieldDescription">
+                        Specify minimum number of movies required to form a box set.
+                    </div>
+                </div>
+                <br/>
+                <button is="emby-button" type="button" class="raised block"><span>${ButtonScanAllLibraries}</span></button>
+                <button is="emby-button" type="submit" class="raised button-submit block"><span>${ButtonSave}</span></button>
+            </form>
+        </div>
+    </div>
+
+
+    <script type="text/javascript">
+
+        var SyncConfigurationPage = {
+            pluginUniqueId: "BC4AAD2E-D3D0-4725-A5E2-FD07949E5B42"
+        };
+
+        $('.tbsConfigurationPage').on('pageshow', function () {
+            Dashboard.showLoadingMsg();
+            var page = this;
+            ApiClient.getPluginConfiguration(SyncConfigurationPage.pluginUniqueId).then(function (config) {
+
+                $('#minimum-movies', page).val(config.MinimumNumberOfMovies || "2");
+                Dashboard.hideLoadingMsg();
+            });
+        });
+
+        $('.tbsConfigurationPage').on('submit', function () {
+            Dashboard.showLoadingMsg();
+            
+            var minimumNumberOfMovies = $('#minimum-movies').val();
+            ApiClient.getPluginConfiguration(SyncConfigurationPage.pluginUniqueId).then(function (config) {
+                config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || "2";
+                ApiClient.updatePluginConfiguration(SyncConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
+            });
+            // Disable default form submission
+            return false;
+        });
+    </script>
+</div>
+</body>
+</html>

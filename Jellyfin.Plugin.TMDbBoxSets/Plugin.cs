@@ -35,7 +35,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 new PluginPageInfo
                 {
                     Name = "TMDb Box Sets",
-                    EmbeddedResourcePath = GetType().Namespace + ".configurationpage.html"
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configurationpage.html"
                 }
             };
         }

@@ -21,4 +21,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Configuration\configurationpage.html" />
+    <EmbeddedResource Include="Configuration\configurationpage.html" />
+  </ItemGroup>
+
 </Project>

@@ -33,13 +33,22 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
         private void AddMoviesToCollection(IReadOnlyCollection<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
         {
+            int minimumNumberOfMovies = Plugin.Instance.PluginConfiguration.MinimumNumberOfMovies;
+            if (movies.Count < minimumNumberOfMovies)
+            {
+                _logger.LogInformation("Minimum number of movies is {Count}, but there are only {MovieCount}: {MovieNames}",
+                    minimumNumberOfMovies, movies.Count, string.Join(", ", movies.Select(m => m.Name)));
+                return;
+            }
+
             // Create the box set if it doesn't exist, but don't add anything to it on creation
             if (boxSet == null)
             {
-                _logger.LogInformation("Box Set for {TmdbCollectionId} does not exist. Creating it now!", tmdbCollectionId);
+                var tmdbCollectionName = movies.First().TmdbCollectionName;
+                _logger.LogInformation("Box Set for {TmdbCollectionName} ({TmdbCollectionId}) does not exist. Creating it now!", tmdbCollectionName, tmdbCollectionId);
                 boxSet = _collectionManager.CreateCollection(new CollectionCreationOptions
                 {
-                    Name = movies.First().TmdbCollectionName,
+                    Name = tmdbCollectionName,
                     ProviderIds = new Dictionary<string, string> {{MetadataProviders.Tmdb.ToString(), tmdbCollectionId}}
                 });
             }
@@ -51,6 +60,8 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
             if (!itemsToAdd.Any())
             {
+                _logger.LogInformation("All movies are already in their proper box set ({BoxSetName}): {MovieNames}",
+                    boxSet.Name, string.Join(", ", movies.Select(m => m.Name)));
                 return;
             }
             
