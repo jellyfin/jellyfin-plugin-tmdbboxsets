@@ -57,9 +57,9 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             _collectionManager.AddToCollection(boxSet.Id, itemsToAdd);
         }
 
-        private IEnumerable<Movie> GetMoviesFromLibrary()
+        private IReadOnlyCollection<Movie> GetMoviesFromLibrary()
         {
-            return _libraryManager.GetItemList(new InternalItemsQuery
+            var movies = _libraryManager.GetItemList(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] {typeof(Movie).Name},
                 IsVirtualItem = false,
@@ -69,8 +69,12 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 },
                 Recursive = true,
                 HasTmdbId = true
-            }).Select(m => m as Movie).Where(m => m.HasProviderId(MetadataProviders.TmdbCollection) 
-                                                  && !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProviders.TmdbCollection)));
+            }).Select(m => m as Movie);
+
+            // We are only interested in movies that belong to a TMDb collection
+            return movies.Where(m =>
+                m.HasProviderId(MetadataProviders.TmdbCollection) &&
+                !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProviders.TmdbCollection))).ToList();
         }
 
         private IReadOnlyCollection<BoxSet> GetAllBoxSetsFromLibrary()
@@ -79,8 +83,9 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             {
                 IncludeItemTypes = new[] {typeof(BoxSet).Name},
                 CollapseBoxSetItems = false,
-                Recursive = true
-            }).Select(b => b as BoxSet).Where(b => b.HasProviderId(MetadataProviders.Tmdb)).ToList();
+                Recursive = true,
+                HasTmdbId = true
+            }).Select(b => b as BoxSet).ToList();
         }
 
         public void ScanLibrary(IProgress<double> progress)
@@ -139,7 +144,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             _queuedTmdbCollectionIds.Clear();
 
             var boxSets = GetAllBoxSetsFromLibrary();
-            var movies = GetMoviesFromLibrary().ToArray();
+            var movies = GetMoviesFromLibrary();
             foreach (var tmdbCollectionId in tmdbCollectionIds)
             {
                 var movieMatches = movies
