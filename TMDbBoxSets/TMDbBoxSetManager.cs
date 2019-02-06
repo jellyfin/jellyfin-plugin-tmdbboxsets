@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using Microsoft.Extensions.Logging;
@@ -18,28 +18,25 @@ namespace TMDbBoxSets
     {
         private readonly ILibraryManager _libraryManager;
         private readonly ICollectionManager _collectionManager;
-        private readonly IProviderManager _providerManager;
-        private readonly ILogger _logger;
+        private readonly Timer _timer;
+        private readonly HashSet<string> _queuedTmdbCollectionIds;
+        private readonly ILogger _logger; // TODO logging
 
-        public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, IProviderManager providerManager, ILogger logger)
+        public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger logger)
         {
             _libraryManager = libraryManager;
             _collectionManager = collectionManager;
-            _providerManager = providerManager;
             _logger = logger;
+            _timer = new Timer(_ => OnTimerElapsed(), null, Timeout.Infinite, Timeout.Infinite);
+            _queuedTmdbCollectionIds = new HashSet<string>();
         }
 
-        private void AddMoviesToCollection(IReadOnlyCollection<Movie> movies, string tmdbCollectionId)
-        {
-            var boxSet = GetBoxSetFromLibrary(tmdbCollectionId).FirstOrDefault();
-            AddMoviesToCollection(movies, tmdbCollectionId, boxSet);
-        }
-        
         private void AddMoviesToCollection(IReadOnlyCollection<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
         {
             // Create the box set if it doesn't exist, but don't add anything to it on creation
             if (boxSet == null)
             {
+                _logger.LogInformation("Box Set for {TmdbCollectionId} does not exist. Creating it now!", tmdbCollectionId);
                 boxSet = _collectionManager.CreateCollection(new CollectionCreationOptions
                 {
                     Name = movies.First().TmdbCollectionName,
@@ -49,7 +46,13 @@ namespace TMDbBoxSets
 
             var itemsToAdd = movies
                 .Where(m => !boxSet.ContainsLinkedChildByItemId(m.Id))
-                .Select(m => m.Id);
+                .Select(m => m.Id)
+                .ToList();
+
+            if (!itemsToAdd.Any())
+            {
+                return;
+            }
             
             _collectionManager.AddToCollection(boxSet.Id, itemsToAdd);
         }
@@ -68,19 +71,8 @@ namespace TMDbBoxSets
                 HasTmdbId = true
             }).Select(m => m as Movie).Where(m => m.HasProviderId(MetadataProviders.TmdbCollection));
         }
-        
-        private IEnumerable<BoxSet> GetBoxSetFromLibrary(string tmdbId)
-        {
-            return _libraryManager.GetItemList(new InternalItemsQuery
-            {
-                IncludeItemTypes = new[] {typeof(BoxSet).Name},
-                CollapseBoxSetItems = false,
-                Recursive = true,
-                HasAnyProviderId = new Dictionary<string, string> {{MetadataProviders.Tmdb.ToString(), tmdbId}}
-            }).Select(b => b as BoxSet);
-        }
-        
-        private IReadOnlyCollection<BoxSet> GetBoxSetsFromLibrary()
+
+        private IReadOnlyCollection<BoxSet> GetAllBoxSetsFromLibrary()
         {
             return _libraryManager.GetItemList(new InternalItemsQuery
             {
@@ -92,36 +84,21 @@ namespace TMDbBoxSets
 
         public void ScanLibrary()
         {
-            var existingMovies = GetMoviesFromLibrary();
-            var boxSets = GetBoxSetsFromLibrary();
+            var boxSets = GetAllBoxSetsFromLibrary();
 
-            var movieCollections = new Dictionary<string, List<Movie>>();
-            foreach (Movie movie in existingMovies)
-            {
-                var tmdbCollectionId = movie.GetProviderId(MetadataProviders.TmdbCollection);
-                if (string.IsNullOrWhiteSpace(tmdbCollectionId))
-                {
-                    continue;
-                }
-
-                if (!movieCollections.TryGetValue(tmdbCollectionId, out var movies))
-                {
-                    movies = new List<Movie>();
-                    movieCollections.Add(tmdbCollectionId, movies);
-                }
-                movies.Add(movie);
-            }
+            var movieCollections = GetMoviesFromLibrary()
+                .Where(m => string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProviders.TmdbCollection)))
+                .GroupBy(m => m.GetProviderId(MetadataProviders.TmdbCollection));
 
             foreach (var movieCollection in movieCollections)
             {
                 var tmdbCollectionId = movieCollection.Key;
-                var movies = movieCollection.Value;
 
                 var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProviders.Tmdb) == tmdbCollectionId);
-                AddMoviesToCollection(movies, tmdbCollectionId, boxSet);
+                AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet);
             }
         }
-        
+
         private void OnLibraryManagerItemUpdated(object sender, ItemChangeEventArgs e)
         {
             // Only support movies at this time
@@ -129,19 +106,44 @@ namespace TMDbBoxSets
             {
                 return;
             }
+
             // TODO: look it up?
             var tmdbCollectionId = movie.GetProviderId(MetadataProviders.TmdbCollection);
             if (string.IsNullOrEmpty(tmdbCollectionId))
             {
                 return;
             }
-            
-            var movieMatches = GetMoviesFromLibrary()
-                .Where(m => m.GetProviderId(MetadataProviders.TmdbCollection) == tmdbCollectionId).ToList();
-            
-            AddMoviesToCollection(movieMatches, tmdbCollectionId);
+
+            _queuedTmdbCollectionIds.Add(tmdbCollectionId);
+
+            // Restart the timer. After idling for 5 seconds it should trigger the callback. This is to avoid clobbering during a large library update.
+            _timer.Change(5000, Timeout.Infinite);
         }
-        
+
+        private void OnTimerElapsed()
+        {
+            // Stop the timer until next update
+            _timer.Change(Timeout.Infinite, Timeout.Infinite);
+
+            var tmdbCollectionIds = _queuedTmdbCollectionIds
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .ToArray();
+            // Clear the queue now, TODO what if it crashes? Should it be cleared after it's done?
+            _queuedTmdbCollectionIds.Clear();
+
+            var boxSets = GetAllBoxSetsFromLibrary();
+            var movies = GetMoviesFromLibrary().ToArray();
+            foreach (var tmdbCollectionId in tmdbCollectionIds)
+            {
+                var movieMatches = movies
+                    .Where(m => m.GetProviderId(MetadataProviders.TmdbCollection) == tmdbCollectionId)
+                    .ToList();
+                var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProviders.Tmdb) == tmdbCollectionId);
+
+                AddMoviesToCollection(movieMatches, tmdbCollectionId, boxSet);
+            }
+        }
+
         public void Dispose()
         {
             _libraryManager.ItemUpdated -= OnLibraryManagerItemUpdated;
