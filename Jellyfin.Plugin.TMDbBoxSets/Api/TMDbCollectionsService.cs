@@ -2,7 +2,7 @@ using System;
 using MediaBrowser.Model.Services;
 using Microsoft.Extensions.Logging;
 
-namespace TMDbBoxSets.Api
+namespace Jellyfin.Plugin.TMDbBoxSets.Api
 {
     [Route("/TMDbCollections/Refresh", "POST", Summary = "Refreshes collection metadata for all movies")]
     public class RefreshMetadataRequest : IReturnVoid

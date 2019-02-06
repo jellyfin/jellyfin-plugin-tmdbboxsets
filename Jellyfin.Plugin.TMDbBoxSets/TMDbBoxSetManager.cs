@@ -12,7 +12,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using Microsoft.Extensions.Logging;
 
-namespace TMDbBoxSets
+namespace Jellyfin.Plugin.TMDbBoxSets
 {
     public class TMDbBoxSetManager : IServerEntryPoint
     {

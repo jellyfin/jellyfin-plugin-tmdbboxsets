@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TMDbBoxSets", "TMDbBoxSets\TMDbBoxSets.csproj", "{A6C0029B-F304-4577-92D3-32153DCE1FDC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Jellyfin.Plugin.TMDbBoxSets", "Jellyfin.Plugin.TMDbBoxSets\Jellyfin.Plugin.TMDbBoxSets.csproj", "{A6C0029B-F304-4577-92D3-32153DCE1FDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

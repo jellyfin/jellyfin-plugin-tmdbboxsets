@@ -1,6 +1,6 @@
 ﻿using MediaBrowser.Model.Plugins;
 
-namespace TMDbBoxSets.Configuration
+namespace Jellyfin.Plugin.TMDbBoxSets.Configuration
 {
     public class PluginConfiguration : BasePluginConfiguration
     {
