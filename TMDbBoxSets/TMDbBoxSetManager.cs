@@ -69,7 +69,8 @@ namespace TMDbBoxSets
                 },
                 Recursive = true,
                 HasTmdbId = true
-            }).Select(m => m as Movie).Where(m => m.HasProviderId(MetadataProviders.TmdbCollection));
+            }).Select(m => m as Movie).Where(m => m.HasProviderId(MetadataProviders.TmdbCollection) 
+                                                  && !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProviders.TmdbCollection)));
         }
 
         private IReadOnlyCollection<BoxSet> GetAllBoxSetsFromLibrary()
@@ -82,21 +83,29 @@ namespace TMDbBoxSets
             }).Select(b => b as BoxSet).Where(b => b.HasProviderId(MetadataProviders.Tmdb)).ToList();
         }
 
-        public void ScanLibrary()
+        public void ScanLibrary(IProgress<double> progress)
         {
             var boxSets = GetAllBoxSetsFromLibrary();
 
             var movieCollections = GetMoviesFromLibrary()
-                .Where(m => string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProviders.TmdbCollection)))
-                .GroupBy(m => m.GetProviderId(MetadataProviders.TmdbCollection));
+                .GroupBy(m => m.GetProviderId(MetadataProviders.TmdbCollection))
+                .ToArray();
 
+            _logger.LogInformation("Found {Count} TMDb collection(s) across all movies", movieCollections.Length);
+            int index = 0;
             foreach (var movieCollection in movieCollections)
             {
+                double percent = (double)index / movieCollections.Length;
+                progress.Report(100 * percent);
+
                 var tmdbCollectionId = movieCollection.Key;
 
                 var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProviders.Tmdb) == tmdbCollectionId);
                 AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet);
+                index++;
             }
+
+            progress.Report(100);
         }
 
         private void OnLibraryManagerItemUpdated(object sender, ItemChangeEventArgs e)
@@ -125,9 +134,7 @@ namespace TMDbBoxSets
             // Stop the timer until next update
             _timer.Change(Timeout.Infinite, Timeout.Infinite);
 
-            var tmdbCollectionIds = _queuedTmdbCollectionIds
-                .Where(m => !string.IsNullOrWhiteSpace(m))
-                .ToArray();
+            var tmdbCollectionIds = _queuedTmdbCollectionIds.ToArray();
             // Clear the queue now, TODO what if it crashes? Should it be cleared after it's done?
             _queuedTmdbCollectionIds.Clear();
 

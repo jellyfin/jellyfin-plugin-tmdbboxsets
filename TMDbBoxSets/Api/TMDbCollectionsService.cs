@@ -1,3 +1,4 @@
+using System;
 using MediaBrowser.Model.Services;
 using Microsoft.Extensions.Logging;
 
@@ -19,11 +20,11 @@ namespace TMDbBoxSets.Api
             _logger = logger;
         }
         
-        public void RefreshMetadata(RefreshMetadataRequest request)
+        public void RefreshMetadata(RefreshMetadataRequest request, IProgress<double> progress)
         {
             // TODO
             _logger.LogInformation("Starting a manual refresh of TMDb collections");
-            _tmDbBoxSetManager.ScanLibrary();
+            _tmDbBoxSetManager.ScanLibrary(progress);
             _logger.LogInformation("Completed refresh of TMDb collections");
         }
     }
