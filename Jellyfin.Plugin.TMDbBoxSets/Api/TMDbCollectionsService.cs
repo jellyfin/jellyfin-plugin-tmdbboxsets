@@ -1,10 +1,13 @@
-using System;
+using MediaBrowser.Controller.Collections;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.TMDbBoxSets.Api
 {
-    [Route("/TMDbCollections/Refresh", "POST", Summary = "Refreshes collection metadata for all movies")]
+    [Route("/TMDbBoxSets/Refresh", "POST", Summary = "Scans all movies and creates box sets")]
+    [Authenticated]
     public class RefreshMetadataRequest : IReturnVoid
     {
     }
@@ -14,17 +17,16 @@ namespace Jellyfin.Plugin.TMDbBoxSets.Api
         private readonly TMDbBoxSetManager _tmDbBoxSetManager;
         private readonly ILogger _logger;
 
-        public TMDbCollectionsService(TMDbBoxSetManager tmDbBoxSetManager, ILogger logger)
+        public TMDbCollectionsService(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger logger)
         {
-            _tmDbBoxSetManager = tmDbBoxSetManager;
+            _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, logger);
             _logger = logger;
         }
         
-        public void RefreshMetadata(RefreshMetadataRequest request, IProgress<double> progress)
+        public void Post(RefreshMetadataRequest request)
         {
-            // TODO
             _logger.LogInformation("Starting a manual refresh of TMDb collections");
-            _tmDbBoxSetManager.ScanLibrary(progress);
+            _tmDbBoxSetManager.ScanLibrary(null);
             _logger.LogInformation("Completed refresh of TMDb collections");
         }
     }

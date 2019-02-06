@@ -36,7 +36,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             int minimumNumberOfMovies = Plugin.Instance.PluginConfiguration.MinimumNumberOfMovies;
             if (movies.Count < minimumNumberOfMovies)
             {
-                _logger.LogInformation("Minimum number of movies is {Count}, but there are only {MovieCount}: {MovieNames}",
+                _logger.LogInformation("Minimum number of movies is {Count}, but there is/are only {MovieCount}: {MovieNames}",
                     minimumNumberOfMovies, movies.Count, string.Join(", ", movies.Select(m => m.Name)));
                 return;
             }
@@ -60,8 +60,8 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
             if (!itemsToAdd.Any())
             {
-                _logger.LogInformation("All movies are already in their proper box set ({BoxSetName}): {MovieNames}",
-                    boxSet.Name, string.Join(", ", movies.Select(m => m.Name)));
+                _logger.LogInformation("The movies {MovieNames} is/are already in their proper box set, {BoxSetName}",
+                    string.Join(", ", movies.Select(m => m.Name)), boxSet.Name);
                 return;
             }
             
@@ -111,8 +111,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             int index = 0;
             foreach (var movieCollection in movieCollections)
             {
-                double percent = (double)index / movieCollections.Length;
-                progress.Report(100 * percent);
+                progress?.Report(100.0 * index / movieCollections.Length);
 
                 var tmdbCollectionId = movieCollection.Key;
 
@@ -121,7 +120,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 index++;
             }
 
-            progress.Report(100);
+            progress?.Report(100);
         }
 
         private void OnLibraryManagerItemUpdated(object sender, ItemChangeEventArgs e)

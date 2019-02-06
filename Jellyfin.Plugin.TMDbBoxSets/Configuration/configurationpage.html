@@ -17,7 +17,7 @@
                     </div>
                 </div>
                 <br/>
-                <button is="emby-button" type="button" class="raised block"><span>${ButtonScanAllLibraries}</span></button>
+                <button is="emby-button" type="button" class="raised block" id="refresh-library"><span>${ButtonScanAllLibraries}</span></button>
                 <button is="emby-button" type="submit" class="raised button-submit block"><span>${ButtonSave}</span></button>
             </form>
         </div>
@@ -50,6 +50,19 @@
             });
             // Disable default form submission
             return false;
+        });
+        $('#refresh-library').on('click', function () {
+            var request = {
+                url: ApiClient.getUrl('TMDbBoxSets/Refresh'),
+                type: 'POST'
+            };
+            ApiClient.fetch(request).then(function () {
+                Dashboard.alert("Library scan queued");
+            }).catch(function () {
+                Dashboard.alert({
+                    message: "Unexpected error occurred!"
+                });
+            });
         });
     </script>
 </div>
