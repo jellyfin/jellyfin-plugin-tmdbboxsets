@@ -34,14 +34,12 @@
 
     <script type="text/javascript">
 
-        var SyncConfigurationPage = {
-            pluginUniqueId: "BC4AAD2E-D3D0-4725-A5E2-FD07949E5B42"
-        };
+        var pluginId = "BC4AAD2E-D3D0-4725-A5E2-FD07949E5B42";
 
         $('.tbsConfigurationPage').on('pageshow', function () {
             Dashboard.showLoadingMsg();
             var page = this;
-            ApiClient.getPluginConfiguration(SyncConfigurationPage.pluginUniqueId).then(function (config) {
+            ApiClient.getPluginConfiguration(pluginId).then(function (config) {
 
                 $('#minimum-movies', page).val(config.MinimumNumberOfMovies || "2");
                 Dashboard.hideLoadingMsg();
@@ -52,9 +50,9 @@
             Dashboard.showLoadingMsg();
             
             var minimumNumberOfMovies = $('#minimum-movies').val();
-            ApiClient.getPluginConfiguration(SyncConfigurationPage.pluginUniqueId).then(function (config) {
+            ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || "2";
-                ApiClient.updatePluginConfiguration(SyncConfigurationPage.pluginUniqueId, config).then(Dashboard.processPluginConfigurationUpdateResult);
+                ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
             });
             // Disable default form submission
             return false;
