@@ -1,0 +1,13 @@
+---
+name: "jellyfin-plugin-tmdbboxsets"
+guid: "BC4AAD2E-D3D0-4725-A5E2-FD07949E5B42"
+version: "1.0.0"
+nicename: "TMDb Box Sets"
+description: "Automatically create movie box sets based on TMDb collections"
+overview: "Automatically create movie box sets based on TMDb collections"
+category: "General"
+artifacts:
+  - "Jellyfin.Plugin.PlaybackReporting.dll"
+build_type: "dotnet"
+dotnet_configuration: "Release"
+dotnet_framework: "netstandard2.0"
