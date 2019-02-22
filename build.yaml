@@ -7,7 +7,7 @@ description: "Automatically create movie box sets based on TMDb collections"
 overview: "Automatically create movie box sets based on TMDb collections"
 category: "General"
 artifacts:
-  - "Jellyfin.Plugin.PlaybackReporting.dll"
+  - "Jellyfin.Plugin.TMDbBoxSets.dll"
 build_type: "dotnet"
 dotnet_configuration: "Release"
 dotnet_framework: "netstandard2.0"
