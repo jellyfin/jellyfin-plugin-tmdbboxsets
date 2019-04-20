@@ -1,7 +1,9 @@
 ---
 name: "jellyfin-plugin-tmdbboxsets"
 guid: "BC4AAD2E-D3D0-4725-A5E2-FD07949E5B42"
-version: "1.0.0"
+version: "2" # Please increment with each pull request
+jellyfin_version: "10.3.0" # The earliest binary-compatible version
+owner: "jellyfin"
 nicename: "TMDb Box Sets"
 description: "Automatically create movie box sets based on TMDb collections"
 overview: "Automatically create movie box sets based on TMDb collections"
