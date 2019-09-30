@@ -25,7 +25,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
         public PluginConfiguration PluginConfiguration => Configuration;
 
-        private readonly Guid _id = new Guid("BC4AAD2E-D3D0-4725-A5E2-FD07949E5B42");
+        private readonly Guid _id = new Guid("bc4aad2e-d3d0-4725-a5e2-fd07949e5b42");
         public override Guid Id => _id;
 
         public IEnumerable<PluginPageInfo> GetPages()
