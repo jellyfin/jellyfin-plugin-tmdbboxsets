@@ -74,7 +74,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             {
                 IncludeItemTypes = new[] {typeof(Movie).Name},
                 IsVirtualItem = false,
-                OrderBy = new[]
+                OrderBy = new List<ValueTuple<string, SortOrder>>
                 {
                     new ValueTuple<string, SortOrder>(ItemSortBy.SortName, SortOrder.Ascending)
                 },
