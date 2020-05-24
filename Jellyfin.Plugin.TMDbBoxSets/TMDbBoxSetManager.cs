@@ -45,6 +45,11 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             if (boxSet == null)
             {
                 var tmdbCollectionName = movies.First().TmdbCollectionName;
+                if (Plugin.Instance.PluginConfiguration.StripCollectionKeywords)
+                {
+                    tmdbCollectionName = tmdbCollectionName.Replace("Collection", String.Empty).Trim();
+                }
+
                 _logger.LogInformation("Box Set for {TmdbCollectionName} ({TmdbCollectionId}) does not exist. Creating it now!", tmdbCollectionName, tmdbCollectionId);
                 boxSet = _collectionManager.CreateCollection(new CollectionCreationOptions
                 {

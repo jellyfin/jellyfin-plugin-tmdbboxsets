@@ -17,10 +17,19 @@
                         <br/>
                     </div>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="minimum-movies">Minimum number of movies:</label>
+                        <label class="inputLabel inputLabelUnfocused" for="minimum-movies">Minimum Number of Movies</label>
                         <input type="number" id="minimum-movies" name="minimum-movies" is="emby-input"/>
                         <div class="fieldDescription">
                             Specify minimum number of movies required to form a box set.
+                        </div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="strip-keywords" name="strip-keywords" />
+                            <span>Strip Keywords from Title</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Remove the "Collection" suffix from titles when it exists in the name.
                         </div>
                     </div>
                     <br/>
@@ -29,18 +38,15 @@
                 </form>
             </div>
         </div>
-
-
         <script type="text/javascript">
-
             var pluginId = "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42";
 
             $('.tbsConfigurationPage').on('pageshow', function () {
                 Dashboard.showLoadingMsg();
                 var page = this;
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-
                     $('#minimum-movies', page).val(config.MinimumNumberOfMovies || "2");
+                    $('#strip-keywords', page).checked(config.StripCollectionKeywords).checkboxradio("refresh");
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -51,9 +57,11 @@
                 var minimumNumberOfMovies = $('#minimum-movies').val();
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || "2";
+                    config.StripCollectionKeywords = $('#strip-keywords', page).checked();
+
                     ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                 });
-                // Disable default form submission
+
                 return false;
             });
             $('#refresh-library').on('click', function () {
@@ -61,6 +69,7 @@
                     url: ApiClient.getUrl('TMDbBoxSets/Refresh'),
                     type: 'POST'
                 };
+
                 ApiClient.fetch(request).then(function () {
                     Dashboard.alert("Library scan queued");
                 }).catch(function () {
