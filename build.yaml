@@ -1,15 +1,13 @@
 ---
-name: "jellyfin-plugin-tmdbboxsets"
+name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
-version: "5"
-jellyfin_version: "10.5.0"
+version: "5.0.0.0"
+targetAbi: "10.5.0.0"
 owner: "jellyfin"
-nicename: "TMDb Box Sets"
-description: "Automatically create movie box sets based on TMDb collections"
 overview: "Automatically create movie box sets based on TMDb collections"
+description: "Automatically create movie box sets based on TMDb collections"
 category: "Metadata"
 artifacts:
-  - "Jellyfin.Plugin.TMDbBoxSets.dll"
-build_type: "dotnet"
-dotnet_configuration: "Release"
-dotnet_framework: "netstandard2.1"
+- "Jellyfin.Plugin.TMDbBoxSets.dll"
+changelog: >
+  changelog
