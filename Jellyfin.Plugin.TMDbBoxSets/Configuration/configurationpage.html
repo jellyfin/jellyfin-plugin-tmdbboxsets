@@ -46,7 +46,7 @@
                 var page = this;
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     $('#minimum-movies', page).val(config.MinimumNumberOfMovies || "2");
-                    $('#strip-keywords', page).checked = config.StripCollectionKeywords;
+                    document.getElementById('strip-keywords').checked = config.StripCollectionKeywords;
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -57,7 +57,7 @@
                 var minimumNumberOfMovies = $('#minimum-movies').val();
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || "2";
-                    config.StripCollectionKeywords = $('#strip-keywords', page).checked;
+                    config.StripCollectionKeywords = document.getElementById('strip-keywords').checked;
 
                     ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                 });
