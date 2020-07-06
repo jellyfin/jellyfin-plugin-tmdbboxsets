@@ -20,9 +20,9 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         private readonly ICollectionManager _collectionManager;
         private readonly Timer _timer;
         private readonly HashSet<string> _queuedTmdbCollectionIds;
-        private readonly ILogger _logger; // TODO logging
+        private readonly ILogger<TMDbBoxSetManager> _logger; // TODO logging
 
-        public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger logger)
+        public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbBoxSetManager> logger)
         {
             _libraryManager = libraryManager;
             _collectionManager = collectionManager;
