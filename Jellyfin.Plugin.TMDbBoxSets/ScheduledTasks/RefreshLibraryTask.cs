@@ -11,13 +11,13 @@ namespace Jellyfin.Plugin.TMDbBoxSets.ScheduledTasks
 {
     public class RefreshLibraryTask : IScheduledTask
     {
-        private readonly ILogger _logger;
+        private readonly ILogger<RefreshLibraryTask> _logger;
         private readonly TMDbBoxSetManager _tmDbBoxSetManager;
 
-        public RefreshLibraryTask(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger logger)
+        public RefreshLibraryTask(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<RefreshLibraryTask> logger, ILogger<TMDbBoxSetManager> boxset_logger)
         {
             _logger = logger;
-            _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, logger);
+            _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, boxset_logger);
         }
         public Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {

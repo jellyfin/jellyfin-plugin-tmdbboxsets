@@ -15,11 +15,11 @@ namespace Jellyfin.Plugin.TMDbBoxSets.Api
     public class TMDbCollectionsService : IService
     {
         private readonly TMDbBoxSetManager _tmDbBoxSetManager;
-        private readonly ILogger _logger;
+        private readonly ILogger<TMDbCollectionsService> _logger;
 
-        public TMDbCollectionsService(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger logger)
+        public TMDbCollectionsService(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbCollectionsService> logger, ILogger<TMDbBoxSetManager> boxset_logger)
         {
-            _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, logger);
+            _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, boxset_logger);
             _logger = logger;
         }
         

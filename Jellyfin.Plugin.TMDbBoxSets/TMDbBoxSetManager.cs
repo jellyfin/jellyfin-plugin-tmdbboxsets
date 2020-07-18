@@ -20,9 +20,9 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         private readonly ICollectionManager _collectionManager;
         private readonly Timer _timer;
         private readonly HashSet<string> _queuedTmdbCollectionIds;
-        private readonly ILogger _logger; // TODO logging
+        private readonly ILogger<TMDbBoxSetManager> _logger; // TODO logging
 
-        public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger logger)
+        public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbBoxSetManager> logger)
         {
             _libraryManager = libraryManager;
             _collectionManager = collectionManager;
@@ -54,7 +54,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 boxSet = _collectionManager.CreateCollection(new CollectionCreationOptions
                 {
                     Name = tmdbCollectionName,
-                    ProviderIds = new Dictionary<string, string> {{MetadataProviders.Tmdb.ToString(), tmdbCollectionId}}
+                    ProviderIds = new Dictionary<string, string> {{MetadataProvider.Tmdb.ToString(), tmdbCollectionId}}
                 });
             }
 
@@ -89,8 +89,8 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
             // We are only interested in movies that belong to a TMDb collection
             return movies.Where(m =>
-                m.HasProviderId(MetadataProviders.TmdbCollection) &&
-                !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProviders.TmdbCollection))).ToList();
+                m.HasProviderId(MetadataProvider.TmdbCollection) &&
+                !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
         }
 
         private IReadOnlyCollection<BoxSet> GetAllBoxSetsFromLibrary()
@@ -109,7 +109,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             var boxSets = GetAllBoxSetsFromLibrary();
 
             var movieCollections = GetMoviesFromLibrary()
-                .GroupBy(m => m.GetProviderId(MetadataProviders.TmdbCollection))
+                .GroupBy(m => m.GetProviderId(MetadataProvider.TmdbCollection))
                 .ToArray();
 
             _logger.LogInformation("Found {Count} TMDb collection(s) across all movies", movieCollections.Length);
@@ -120,7 +120,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
                 var tmdbCollectionId = movieCollection.Key;
 
-                var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProviders.Tmdb) == tmdbCollectionId);
+                var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
                 AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet);
                 index++;
             }
@@ -137,7 +137,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             }
 
             // TODO: look it up?
-            var tmdbCollectionId = movie.GetProviderId(MetadataProviders.TmdbCollection);
+            var tmdbCollectionId = movie.GetProviderId(MetadataProvider.TmdbCollection);
             if (string.IsNullOrEmpty(tmdbCollectionId))
             {
                 return;
@@ -163,9 +163,9 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             foreach (var tmdbCollectionId in tmdbCollectionIds)
             {
                 var movieMatches = movies
-                    .Where(m => m.GetProviderId(MetadataProviders.TmdbCollection) == tmdbCollectionId)
+                    .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId)
                     .ToList();
-                var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProviders.Tmdb) == tmdbCollectionId);
+                var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
 
                 AddMoviesToCollection(movieMatches, tmdbCollectionId, boxSet);
             }
