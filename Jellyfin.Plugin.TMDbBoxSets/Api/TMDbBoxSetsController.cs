@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -11,20 +12,22 @@ namespace Jellyfin.Plugin.TMDbBoxSets.Api
     /// The TMDb collections api controller.
     /// </summary>
     [ApiController]
+    [Authorize(Policy = "DefaultAuthorization")]
+    [Route("[controller]")]
     [Produces(MediaTypeNames.Application.Json)]
-    public class TMDbCollectionsController : ControllerBase
+    public class TMDbBoxSetsController : ControllerBase
     {
         private readonly TMDbBoxSetManager _tmDbBoxSetManager;
-        private readonly ILogger<TMDbCollectionsController> _logger;
+        private readonly ILogger<TMDbBoxSetsController> _logger;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="TMDbCollectionsController"/>.
+        /// Initializes a new instance of <see cref="TMDbBoxSetsController"/>.
         /// </summary>
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
         /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
-        /// <param name="logger">Instance of the <see cref="ILogger{TMDbCollectionsController}"/> interface.</param>
+        /// <param name="logger">Instance of the <see cref="ILogger{TMDbBoxSetsController}"/> interface.</param>
         /// <param name="boxsetLogger">Instance of the <see cref="ILogger{TMDbBoxSetManager}"/> interface.</param>
-        public TMDbCollectionsController(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbCollectionsController> logger, ILogger<TMDbBoxSetManager> boxsetLogger)
+        public TMDbBoxSetsController(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbBoxSetsController> logger, ILogger<TMDbBoxSetManager> boxsetLogger)
         {
             _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, boxsetLogger);
             _logger = logger;
@@ -33,8 +36,9 @@ namespace Jellyfin.Plugin.TMDbBoxSets.Api
         /// <summary>
         /// Scans all movies and creates box sets.
         /// </summary>
-        /// <returns></returns>
-        [HttpPost("TMDbBoxSets/Refresh")]
+        /// <reponse code="204">Library scan and box set creation started successfully. </response>
+        /// <returns>A <see cref="NoContentResult"/> indicating success.</returns>
+        [HttpPost("Refresh")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public ActionResult RefreshMetadataRequest()
         {
