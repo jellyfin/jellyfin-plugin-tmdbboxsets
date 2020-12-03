@@ -122,7 +122,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 var tmdbCollectionId = movieCollection.Key;
 
                 var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
-                await AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet);
+                await AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
                 index++;
             }
 
