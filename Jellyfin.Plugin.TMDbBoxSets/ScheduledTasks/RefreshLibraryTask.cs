@@ -19,12 +19,11 @@ namespace Jellyfin.Plugin.TMDbBoxSets.ScheduledTasks
             _logger = logger;
             _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, boxset_logger);
         }
-        public Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
+        public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
             _logger.LogInformation("Starting TMDbBoxSets refresh library task");
-            _tmDbBoxSetManager.ScanLibrary(progress);
+            await _tmDbBoxSetManager.ScanLibrary(progress).ConfigureAwait(false);
             _logger.LogInformation("TMDbBoxSets refresh library task finished");
-            return Task.CompletedTask;
         }
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()

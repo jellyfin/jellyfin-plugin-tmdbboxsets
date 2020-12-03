@@ -1,4 +1,5 @@
 using System.Net.Mime;
+using System.Threading.Tasks;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
@@ -36,14 +37,14 @@ namespace Jellyfin.Plugin.TMDbBoxSets.Api
         /// <summary>
         /// Scans all movies and creates box sets.
         /// </summary>
-        /// <reponse code="204">Library scan and box set creation started successfully. </response>
+        /// <response code="204">Library scan and box set creation started successfully. </response>
         /// <returns>A <see cref="NoContentResult"/> indicating success.</returns>
         [HttpPost("Refresh")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public ActionResult RefreshMetadataRequest()
+        public async Task<ActionResult> RefreshMetadataRequest()
         {
             _logger.LogInformation("Starting a manual refresh of TMDb collections");
-            _tmDbBoxSetManager.ScanLibrary(null);
+            await _tmDbBoxSetManager.ScanLibrary(null).ConfigureAwait(false);
             _logger.LogInformation("Completed refresh of TMDb collections");
             return NoContent();
         }

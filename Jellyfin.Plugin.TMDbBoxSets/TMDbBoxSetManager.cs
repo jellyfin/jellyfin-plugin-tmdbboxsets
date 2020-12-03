@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -31,7 +32,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             _queuedTmdbCollectionIds = new HashSet<string>();
         }
 
-        private void AddMoviesToCollection(IReadOnlyCollection<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
+        private async Task AddMoviesToCollection(IReadOnlyCollection<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
         {
             int minimumNumberOfMovies = Plugin.Instance.PluginConfiguration.MinimumNumberOfMovies;
             if (movies.Count < minimumNumberOfMovies)
@@ -51,11 +52,11 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 }
 
                 _logger.LogInformation("Box Set for {TmdbCollectionName} ({TmdbCollectionId}) does not exist. Creating it now!", tmdbCollectionName, tmdbCollectionId);
-                boxSet = _collectionManager.CreateCollection(new CollectionCreationOptions
+                boxSet = await _collectionManager.CreateCollectionAsync(new CollectionCreationOptions
                 {
                     Name = tmdbCollectionName,
                     ProviderIds = new Dictionary<string, string> {{MetadataProvider.Tmdb.ToString(), tmdbCollectionId}}
-                });
+                }).ConfigureAwait(false);
             }
 
             var itemsToAdd = movies
@@ -70,14 +71,14 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 return;
             }
             
-            _collectionManager.AddToCollection(boxSet.Id, itemsToAdd);
+            await _collectionManager.AddToCollectionAsync(boxSet.Id, itemsToAdd).ConfigureAwait(false);
         }
 
         private IReadOnlyCollection<Movie> GetMoviesFromLibrary()
         {
             var movies = _libraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] {typeof(Movie).Name},
+                IncludeItemTypes = new[] {nameof(Movie)},
                 IsVirtualItem = false,
                 OrderBy = new List<ValueTuple<string, SortOrder>>
                 {
@@ -97,14 +98,14 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         {
             return _libraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] {typeof(BoxSet).Name},
+                IncludeItemTypes = new[] {nameof(BoxSet)},
                 CollapseBoxSetItems = false,
                 Recursive = true,
                 HasTmdbId = true
             }).Select(b => b as BoxSet).ToList();
         }
 
-        public void ScanLibrary(IProgress<double> progress)
+        public async Task ScanLibrary(IProgress<double> progress)
         {
             var boxSets = GetAllBoxSetsFromLibrary();
 
@@ -121,7 +122,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 var tmdbCollectionId = movieCollection.Key;
 
                 var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
-                AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet);
+                await AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet);
                 index++;
             }
 
@@ -167,7 +168,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                     .ToList();
                 var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
 
-                AddMoviesToCollection(movieMatches, tmdbCollectionId, boxSet);
+                AddMoviesToCollection(movieMatches, tmdbCollectionId, boxSet).GetAwaiter().GetResult();
             }
         }
 
