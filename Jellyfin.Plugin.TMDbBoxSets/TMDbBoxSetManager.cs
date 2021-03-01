@@ -70,7 +70,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                     string.Join(", ", movies.Select(m => m.Name)), boxSet.Name);
                 return;
             }
-            
+
             await _collectionManager.AddToCollectionAsync(boxSet.Id, itemsToAdd).ConfigureAwait(false);
         }
 
@@ -89,9 +89,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             }).Select(m => m as Movie);
 
             // We are only interested in movies that belong to a TMDb collection
-            return movies.Where(m =>
-                m.HasProviderId(MetadataProvider.TmdbCollection) &&
-                !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
+            return movies.Where(m => m.TryGetProviderId(MetadataProvider.TmdbCollection, out _)).ToList();
         }
 
         private IReadOnlyCollection<BoxSet> GetAllBoxSetsFromLibrary()
