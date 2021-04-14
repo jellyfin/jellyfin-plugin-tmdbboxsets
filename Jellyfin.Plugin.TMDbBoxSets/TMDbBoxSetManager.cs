@@ -114,21 +114,27 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
         private string GetTmdbCollectionName(IReadOnlyCollection<Movie> movies)
         {
-            var collectionNames = movies.Select(movie => movie.TmdbCollectionName).Where(name => !string.IsNullOrWhiteSpace(name));
+            var collectionNames = movies
+                .Select(movie => movie.TmdbCollectionName)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToList();
+            var collectionNamesCount = collectionNames.Count;
+            var moviesCount = movies.Count;
 
-            if (movies.Count != collectionNames.Count())
+            if (moviesCount != collectionNamesCount)
             {
                 _logger.LogWarning("Not all the movies in the box set ({MovieCount}) has a Tmdb Collection Name assigned ({Count}): {MovieNames}",
-                  movies.Count, collectionNames.Count(), string.Join(", ", movies.Select(m => m.Name)));
+                  moviesCount, collectionNamesCount, string.Join(", ", movies.Select(m => m.Name)));
             }
 
-            if (collectionNames.Any(x => x != collectionNames.FirstOrDefault()))
+            var firstCollectionName = collectionNames.FirstOrDefault();
+            if (collectionNames.Any(x => x != firstCollectionName))
             {
                 _logger.LogWarning("Not all the Tmdb Collection Names are the same for the box set (using the first one): {MovieNames}",
                    string.Join(", ", movies.Select(m => string.Join(" - ", m.Name, m.TmdbCollectionName))));
             }
 
-            return collectionNames.FirstOrDefault();
+            return firstCollectionName;
         }
 
         public async Task ScanLibrary(IProgress<double> progress)
