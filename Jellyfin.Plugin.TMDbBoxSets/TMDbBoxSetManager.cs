@@ -45,7 +45,14 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             // Create the box set if it doesn't exist, but don't add anything to it on creation
             if (boxSet == null)
             {
-                var tmdbCollectionName = movies.First().TmdbCollectionName;
+                var tmdbCollectionName = GetTmdbCollectionName(movies);
+                if (string.IsNullOrWhiteSpace(tmdbCollectionName))
+                {
+                    _logger.LogError("Can't get a proper box set name for the movies {MovieNames}. Make sure is propertly assigned to the movie info.",
+                        string.Join(", ", movies.Select(m => m.Name)));
+                    return;
+                }
+
                 if (Plugin.Instance.PluginConfiguration.StripCollectionKeywords)
                 {
                     tmdbCollectionName = tmdbCollectionName.Replace("Collection", String.Empty).Trim();
@@ -55,7 +62,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 boxSet = await _collectionManager.CreateCollectionAsync(new CollectionCreationOptions
                 {
                     Name = tmdbCollectionName,
-                    ProviderIds = new Dictionary<string, string> {{MetadataProvider.Tmdb.ToString(), tmdbCollectionId}}
+                    ProviderIds = new Dictionary<string, string> { { MetadataProvider.Tmdb.ToString(), tmdbCollectionId } }
                 }).ConfigureAwait(false);
             }
 
@@ -70,7 +77,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                     string.Join(", ", movies.Select(m => m.Name)), boxSet.Name);
                 return;
             }
-            
+
             await _collectionManager.AddToCollectionAsync(boxSet.Id, itemsToAdd).ConfigureAwait(false);
         }
 
@@ -78,7 +85,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         {
             var movies = _libraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] {nameof(Movie)},
+                IncludeItemTypes = new[] { nameof(Movie) },
                 IsVirtualItem = false,
                 OrderBy = new List<ValueTuple<string, SortOrder>>
                 {
@@ -98,11 +105,30 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         {
             return _libraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] {nameof(BoxSet)},
+                IncludeItemTypes = new[] { nameof(BoxSet) },
                 CollapseBoxSetItems = false,
                 Recursive = true,
                 HasTmdbId = true
             }).Select(b => b as BoxSet).ToList();
+        }
+
+        private string GetTmdbCollectionName(IReadOnlyCollection<Movie> movies)
+        {
+            var collectionNames = movies.Select(movie => movie.TmdbCollectionName).Where(name => !string.IsNullOrWhiteSpace(name));
+
+            if (movies.Count != collectionNames.Count())
+            {
+                _logger.LogWarning("Not all the movies in the box set ({MovieCount}) has a Tmdb Collection Name assigned ({Count}): {MovieNames}",
+                  movies.Count, collectionNames.Count(), string.Join(", ", movies.Select(m => m.Name)));
+            }
+
+            if (collectionNames.Any(x => x != collectionNames.FirstOrDefault()))
+            {
+                _logger.LogWarning("Not all the Tmdb Collection Names are the same for the box set (using the first one): {MovieNames}",
+                   string.Join(", ", movies.Select(m => string.Join(" - ", m.Name, m.TmdbCollectionName))));
+            }
+
+            return collectionNames.FirstOrDefault();
         }
 
         public async Task ScanLibrary(IProgress<double> progress)
@@ -132,7 +158,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         private void OnLibraryManagerItemUpdated(object sender, ItemChangeEventArgs e)
         {
             // Only support movies at this time
-            if (!(e.Item is Movie movie) || e.Item.LocationType == LocationType.Virtual)
+            if (e.Item is not Movie movie || e.Item.LocationType == LocationType.Virtual)
             {
                 return;
             }
