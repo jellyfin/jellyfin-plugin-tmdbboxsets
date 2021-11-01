@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -22,6 +23,9 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         private readonly Timer _timer;
         private readonly HashSet<string> _queuedTmdbCollectionIds;
         private readonly ILogger<TMDbBoxSetManager> _logger; // TODO logging
+
+        private readonly Regex _collectionRegex = new Regex(@"(( |( - ))+\(?\[?(colecci[oó]n|collection|f[ií]lmreihe|поредица|kolekce|系列|시리즈|samling|kolekcia|saga|מארז|კრებული|collectie|gyűjtemény|collezione|シリーズ|samlingen|مجموعه|kolekcja|coletânea|coleção|colecția|kоллекция|รวมชุด|seri|кіноцикл|kolleksiyasi)\)?\]?)$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
         public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbBoxSetManager> logger)
         {
@@ -55,7 +59,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
 
                 if (Plugin.Instance.PluginConfiguration.StripCollectionKeywords)
                 {
-                    tmdbCollectionName = tmdbCollectionName.Replace("Collection", String.Empty).Trim();
+                    tmdbCollectionName = _collectionRegex.Replace(tmdbCollectionName, string.Empty).Trim();
                 }
 
                 _logger.LogInformation("Box Set for {TmdbCollectionName} ({TmdbCollectionId}) does not exist. Creating it now!", tmdbCollectionName, tmdbCollectionId);
