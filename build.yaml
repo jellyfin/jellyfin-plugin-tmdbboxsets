@@ -1,14 +1,25 @@
 ---
 name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
-version: "7.0.0.0"
-targetAbi: "10.7.0.0"
+version: "8"
+targetAbi: "10.8.0.0"
 framework: "net6.0"
 owner: "jellyfin"
 overview: "Automatically create movie box sets based on TMDb collections"
 description: "Automatically create movie box sets based on TMDb collections"
 category: "Metadata"
 artifacts:
-- "Jellyfin.Plugin.TMDbBoxSets.dll"
-changelog: >
-  changelog
+  - "Jellyfin.Plugin.TMDbBoxSets.dll"
+changelog: |-
+  - 10.8 support (#47) @crobibero
+  - Fix #36: Save button has wrong text (#40) @danimart1991
+
+  ### New features and improvements ###
+  - Strip Collection string multilanguage (#43) @danimart1991
+  - Fix #38: NullReferenceException on Collection Name (#41) @danimart1991
+
+  ### Dependency updates ###
+  - chore(deps): bump release-drafter/release-drafter from v5.14.0 to v5.15.0 (#39) @dependabot
+
+  ### CI & build changes ###
+  - chore(ci): builds, releas drafter and more (#34) @h1dden-da3m0n
