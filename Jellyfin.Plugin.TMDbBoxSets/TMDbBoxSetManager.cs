@@ -24,7 +24,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         private readonly HashSet<string> _queuedTmdbCollectionIds;
         private readonly ILogger<TMDbBoxSetManager> _logger; // TODO logging
 
-        private readonly Regex _collectionRegex = new Regex(@"(( |( - ))+\(?\[?(colecci[oó]n|collection|f[ií]lmreihe|поредица|kolekce|系列|시리즈|samling|kolekcia|saga|מארז|კრებული|collectie|gyűjtemény|collezione|シリーズ|samlingen|مجموعه|kolekcja|coletânea|coleção|colecția|kоллекция|รวมชุด|seri|кіноцикл|kolleksiyasi)\)?\]?)$",
+        private readonly Regex _collectionRegex = new Regex(@"(( |( - ))+\(?\[?(colecci[oó]n|collection|f[ií]lmreihe|поредица|kolekce|系列|시리즈|samling|kolekcia|saga|מארז|კრებული|collectie|gyűjtemény|collezione|シリーズ|samlingen|مجموعه|kolekcja|coletânea|coleção|colecția|коллекция|รวมชุด|seri|кіноцикл|kolleksiyasi)\)?\]?)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
         public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbBoxSetManager> logger)
