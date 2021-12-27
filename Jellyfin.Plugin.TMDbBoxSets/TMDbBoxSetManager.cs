@@ -89,7 +89,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         {
             var movies = _libraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] { nameof(Movie) },
+                IncludeItemTypes = new[] { BaseItemKind.Movie },
                 IsVirtualItem = false,
                 OrderBy = new List<ValueTuple<string, SortOrder>>
                 {
@@ -109,7 +109,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         {
             return _libraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] { nameof(BoxSet) },
+                IncludeItemTypes = new[] { BaseItemKind.BoxSet },
                 CollapseBoxSetItems = false,
                 Recursive = true,
                 HasTmdbId = true
