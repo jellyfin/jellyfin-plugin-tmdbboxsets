@@ -2,7 +2,7 @@
 name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
 version: "9"
-targetAbi: "10.7.7.0"
+targetAbi: "10.8.0.0"
 framework: "net6.0"
 owner: "jellyfin"
 overview: "Automatically create movie box sets based on TMDb collections"
