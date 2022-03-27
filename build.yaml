@@ -11,7 +11,10 @@ category: "Metadata"
 artifacts:
   - "Jellyfin.Plugin.TMDbBoxSets.dll"
 changelog: |-
-  - Use BaseItemKind (#56) @crobibero
+  - chore(deps): bump release-drafter/release-drafter from 5.15.0 to 5.17.6 (#59) @dependabot
 
-  ### Bug Fixes ###
-  - Update TMDbBoxSetManager.cs (#49) @WWWesten
+  ### Code or Repo Maintenance ###
+  - 10.8 support (#68) @crobibero
+
+  ### CI & build changes ###
+  - Use meta ci (#67) @crobibero
