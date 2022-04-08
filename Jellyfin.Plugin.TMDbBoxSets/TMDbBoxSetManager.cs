@@ -158,7 +158,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
                 var tmdbCollectionId = movieCollection.Key;
 
                 var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
-                await AddMoviesToCollection(movieCollection.ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
+                await AddMoviesToCollection(movieCollection.Where(m => string.IsNullOrEmpty(m.PrimaryVersionId)).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
                 index++;
             }
 
@@ -200,7 +200,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             foreach (var tmdbCollectionId in tmdbCollectionIds)
             {
                 var movieMatches = movies
-                    .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId)
+                    .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId && string.IsNullOrEmpty(m.PrimaryVersionId))
                     .ToList();
                 var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
 
