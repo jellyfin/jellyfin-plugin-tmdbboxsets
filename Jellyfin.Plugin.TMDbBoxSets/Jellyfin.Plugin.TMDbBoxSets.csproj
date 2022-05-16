@@ -3,8 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>true</IsPackable>
-    <AssemblyVersion>7.0.0.0</AssemblyVersion>
-    <FileVersion>7.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
