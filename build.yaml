@@ -1,8 +1,8 @@
 ---
 name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
-version: "10"
-targetAbi: "10.8.0.0"
+version: 11
+targetAbi: "10.8.13.0"
 framework: "net6.0"
 owner: "jellyfin"
 overview: "Automatically create movie box sets based on TMDb collections"
@@ -10,11 +10,12 @@ description: "Automatically create movie box sets based on TMDb collections"
 category: "Metadata"
 artifacts:
   - "Jellyfin.Plugin.TMDbBoxSets.dll"
-changelog: |-
-  - chore(deps): bump release-drafter/release-drafter from 5.15.0 to 5.17.6 (#59) @dependabot
+changelog: |2-
+  ### Bug Fixes ###
+  - Only add primary versions to collections (#69) @lordwelch
 
   ### Code or Repo Maintenance ###
-  - 10.8 support (#68) @crobibero
+  - Update link to Jellyfin website (#77) @methbkts
 
   ### CI & build changes ###
-  - Use meta ci (#67) @crobibero
+  - fix: meta ci workflows (#70) @h1dden-da3m0n
