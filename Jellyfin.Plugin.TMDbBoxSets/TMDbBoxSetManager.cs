@@ -9,14 +9,13 @@ using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.Querying;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.TMDbBoxSets
 {
-    public class TMDbBoxSetManager : IServerEntryPoint
+    public class TMDbBoxSetManager : IHostedService
     {
         private readonly ILibraryManager _libraryManager;
         private readonly ICollectionManager _collectionManager;
@@ -89,11 +88,11 @@ namespace Jellyfin.Plugin.TMDbBoxSets
         {
             var movies = _libraryManager.GetItemList(new InternalItemsQuery
             {
-                IncludeItemTypes = new[] { BaseItemKind.Movie },
+                IncludeItemTypes = [BaseItemKind.Movie],
                 IsVirtualItem = false,
-                OrderBy = new List<ValueTuple<string, SortOrder>>
+                OrderBy = new List<ValueTuple<ItemSortBy, SortOrder>>
                 {
-                    new ValueTuple<string, SortOrder>(ItemSortBy.SortName, SortOrder.Ascending)
+                    new(ItemSortBy.SortName, SortOrder.Ascending)
                 },
                 Recursive = true,
                 HasTmdbId = true
@@ -208,15 +207,15 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             }
         }
 
-        public void Dispose()
-        {
-            _libraryManager.ItemUpdated -= OnLibraryManagerItemUpdated;
-        }
-
-        public Task RunAsync()
+        public Task StartAsync(CancellationToken cancellationToken)
         {
             _libraryManager.ItemUpdated += OnLibraryManagerItemUpdated;
+            return Task.CompletedTask;
+        }
 
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            _libraryManager.ItemUpdated -= OnLibraryManagerItemUpdated;
             return Task.CompletedTask;
         }
     }
