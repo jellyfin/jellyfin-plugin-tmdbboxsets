@@ -13,7 +13,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets.Api
     /// The TMDb collections api controller.
     /// </summary>
     [ApiController]
-    [Authorize(Policy = "DefaultAuthorization")]
+    [Authorize]
     [Route("[controller]")]
     [Produces(MediaTypeNames.Application.Json)]
     public class TMDbBoxSetsController : ControllerBase
