@@ -1,7 +1,7 @@
 ---
 name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
-version: "10"
+version: 11
 targetAbi: "10.9.0.0"
 framework: "net8.0"
 owner: "jellyfin"
@@ -11,4 +11,13 @@ category: "Metadata"
 artifacts:
   - "Jellyfin.Plugin.TMDbBoxSets.dll"
 changelog: |-
+  - 10.9 (#79) @crobibero
 
+  ### Bug Fixes ###
+  - Only add primary versions to collections (#69) @lordwelch
+
+  ### Code or Repo Maintenance ###
+  - Update link to Jellyfin website (#77) @methbkts
+
+  ### CI & build changes ###
+  - fix: meta ci workflows (#70) @h1dden-da3m0n
