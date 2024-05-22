@@ -101,6 +101,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets
             // We are only interested in movies that belong to a TMDb collection
             return movies.Where(m =>
                 m.HasProviderId(MetadataProvider.TmdbCollection) &&
+                File.Exists(m.Path) && // This should fix the creation of collections missing/non-existent files 
                 !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
         }
 
