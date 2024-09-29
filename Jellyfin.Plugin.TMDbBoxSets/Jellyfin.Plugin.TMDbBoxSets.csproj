@@ -2,8 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>disable</Nullable>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <CodeAnalysisRuleSet>../jellyfin.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Configuration\configurationpage.html" />
+    <EmbeddedResource Include="Configuration\configurationpage.html" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Jellyfin.Controller" Version="10.*-*" />
@@ -11,8 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Configuration\configurationpage.html" />
-    <EmbeddedResource Include="Configuration\configurationpage.html" />
+    <PackageReference Include="SerilogAnalyzer" Version="0.15.0" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" />
+    <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
