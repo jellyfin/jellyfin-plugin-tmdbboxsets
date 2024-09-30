@@ -6,38 +6,53 @@ using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 
-namespace Jellyfin.Plugin.TMDbBoxSets
+namespace Jellyfin.Plugin.TMDbBoxSets;
+
+/// <summary>
+/// Plugin class for TMDb box set management.
+/// </summary>
+public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
-    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Plugin"/> class.
+    /// </summary>
+    /// <param name="appPaths">Instance of the <see cref="IApplicationPaths"/> interface.</param>
+    /// <param name="xmlSerializer">Instance of the <see cref="IXmlSerializer"/> interface.</param>
+    public Plugin(IApplicationPaths appPaths, IXmlSerializer xmlSerializer)
+        : base(appPaths, xmlSerializer)
     {
-        public Plugin(IApplicationPaths appPaths, IXmlSerializer xmlSerializer)
-            : base(appPaths, xmlSerializer)
-        {
-            Instance = this;
-        }
+        Instance = this;
+    }
 
-        public override string Name => "TMDb Box Sets";
+    /// <inheritdoc/>
+    public override string Name => "TMDb Box Sets";
 
-        public static Plugin Instance { get; private set; }
+    /// <summary>
+    /// Gets the plugin instance.
+    /// </summary>
+    public static Plugin Instance { get; private set; }
 
-        public override string Description
-            => "Automatically create movie box sets based on TMDb collections";
+    /// <inheritdoc/>
+    public override string Description => "Automatically create movie box sets based on TMDb collections";
 
-        public PluginConfiguration PluginConfiguration => Configuration;
+    /// <summary>
+    /// Gets the plugin configuration.
+    /// </summary>
+    public PluginConfiguration PluginConfiguration => Configuration;
 
-        private readonly Guid _id = new Guid("bc4aad2e-d3d0-4725-a5e2-fd07949e5b42");
-        public override Guid Id => _id;
+    /// <inheritdoc/>
+    public override Guid Id => new("bc4aad2e-d3d0-4725-a5e2-fd07949e5b42");
 
-        public IEnumerable<PluginPageInfo> GetPages()
-        {
-            return new[]
+    /// <inheritdoc/>
+    public IEnumerable<PluginPageInfo> GetPages()
+    {
+        return
+        [
+            new PluginPageInfo
             {
-                new PluginPageInfo
-                {
-                    Name = "TMDb Box Sets",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configurationpage.html"
-                }
-            };
-        }
+                Name = "TMDb Box Sets",
+                EmbeddedResourcePath = GetType().Namespace + ".Configuration.configurationpage.html"
+            }
+        ];
     }
 }
