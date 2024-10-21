@@ -13,6 +13,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public PluginConfiguration()
     {
         MinimumNumberOfMovies = 2;
+        LibraryIdsCSV = string.Empty;
         StripCollectionKeywords = false;
     }
 
@@ -25,4 +26,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether collection keywords should be stripped from the collection name.
     /// </summary>
     public bool StripCollectionKeywords { get; set; }
+
+    /// <summary>
+    /// Gets or sets the list of library ids to filter by.
+    /// </summary>
+    /// <remarks>Only collections containing movies from these libraries will be created.</remarks>
+    /// <value>The list of library ids to filter by.</value>
+    public string LibraryIdsCSV { get; set; }
 }
