@@ -106,23 +106,41 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 
     private List<Movie> GetMoviesFromLibrary()
     {
-        var movies = _libraryManager.GetItemList(new InternalItemsQuery
-        {
-            IncludeItemTypes = [BaseItemKind.Movie],
-            IsVirtualItem = false,
-            OrderBy = new List<(ItemSortBy, SortOrder)>
-            {
-                new(ItemSortBy.SortName, SortOrder.Ascending)
-            },
-            Recursive = true,
-            HasTmdbId = true
-        }).Select(m => m as Movie);
+        var allMovies = new List<Movie>();
 
-        // We are only interested in movies that belong to a TMDb collection
-        return movies.Where(m =>
-            m.HasProviderId(MetadataProvider.TmdbCollection) &&
-            File.Exists(m.Path) && // This should fix the creation of collections missing/non-existent files
-            !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
+        // convert csv string of ids to Guid
+        var libraryIds = Plugin.Instance.PluginConfiguration.LibraryIdsCSV
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(Guid.Parse)
+            .ToList();
+
+        _logger.LogInformation("Filtering movies by library IDs: {LibraryIds}", string.Join(", ", libraryIds));
+
+        foreach (var libraryId in libraryIds)
+        {
+            var movies = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = [BaseItemKind.Movie],
+                IsVirtualItem = false,
+                OrderBy = new List<(ItemSortBy, SortOrder)>
+                {
+                    new(ItemSortBy.SortName, SortOrder.Ascending)
+                },
+                Recursive = true,
+                HasTmdbId = true,
+                ParentId = libraryId
+            }).Select(m => m as Movie);
+
+            // We are only interested in movies that belong to a TMDb collection
+            var filteredMovies = movies.Where(m =>
+                m.HasProviderId(MetadataProvider.TmdbCollection) &&
+                File.Exists(m.Path) && // This should fix the creation of collections missing/non-existent files
+                !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
+
+            allMovies.AddRange(filteredMovies);
+        }
+
+        return allMovies;
     }
 
     private List<BoxSet> GetAllBoxSetsFromLibrary()
