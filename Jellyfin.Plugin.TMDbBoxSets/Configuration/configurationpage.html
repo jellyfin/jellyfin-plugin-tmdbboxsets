@@ -32,7 +32,10 @@
                             Remove the "Collection" suffix from titles when it exists in the name.
                         </div>
                     </div>
-                    <br/>
+                    <h3 class="sectionTitle">Libraries to scan</h3>
+                    <div id="libraries-container"></div>
+                    <p>To reset collections it's best to manually delete the collections you want to reset inside the folder at 'jellyfin-root-dir/data/data/collections'.</p>
+                    <br />
                     <button is="emby-button" type="button" class="raised block" id="refresh-library"><span>${ButtonScanAllLibraries}</span></button>
                     <button is="emby-button" type="submit" class="raised button-submit block"><span>${Save}</span></button>
                 </form>
@@ -46,7 +49,52 @@
                 var page = this;
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     $('#minimum-movies', page).val(config.MinimumNumberOfMovies || "2");
-                    document.getElementById('strip-keywords').checked = config.StripCollectionKeywords;
+                    $('#strip-keywords').prop('checked', config.StripCollectionKeywords);
+
+                    var librariesRequest = {
+                        url: ApiClient.getUrl('Library/MediaFolders'),
+                        type: 'GET',
+                    };
+
+                    ApiClient.fetch(librariesRequest)
+                        .then(function (res) {
+                            res.json().then(function (data) {
+                                if (!data.Items?.length) {
+                                    Dashboard.alert({
+                                        message: 'No libraries found!',
+                                    });
+                                    return;
+                                }
+                                data.Items.forEach(function (library) {
+                                    if (library.CollectionType !== 'movies') {
+                                        return;
+                                    }
+                                    var libraryContainer = $('<div>', {
+                                        class: 'checkboxContainer checkboxContainer-withDescription',
+                                    });
+                                    var label = $('<label>');
+                                    var input = $('<input>', {
+                                        type: 'checkbox',
+                                        name: 'libraries',
+                                        value: library.Id,
+                                        checked: config.LibraryIdsCSV.includes(library.Id),
+                                    }).attr('is', 'emby-checkbox');
+                                    var span = $('<span>').text(library.Name);
+                                    label.append(input, span);
+                                    var fieldDescription = $('<div>', {
+                                        class: 'fieldDescription checkboxFieldDescription',
+                                    }).text(library.Path);
+                                    libraryContainer.append(label, fieldDescription);
+                                    $('#libraries-container').append(libraryContainer);
+                                });
+                            });
+                        })
+                        .catch(function () {
+                            Dashboard.alert({
+                                message: 'Unexpected error occurred!',
+                            });
+                        });
+
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -57,7 +105,10 @@
                 var minimumNumberOfMovies = $('#minimum-movies').val();
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || "2";
-                    config.StripCollectionKeywords = document.getElementById('strip-keywords').checked;
+                    config.StripCollectionKeywords = $('#strip-keywords').prop('checked');
+                    config.LibraryIdsCSV = Array.from($('input[name="libraries"]:checked'))
+                        .map((e) => e.value)
+                        .join(',');
 
                     ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                 });
