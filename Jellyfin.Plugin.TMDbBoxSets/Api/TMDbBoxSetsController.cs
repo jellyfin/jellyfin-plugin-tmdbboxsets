@@ -1,6 +1,7 @@
 using System;
 using System.Net.Mime;
 using System.Threading.Tasks;
+using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +15,7 @@ namespace Jellyfin.Plugin.TMDbBoxSets.Api;
 /// The TMDb collections API controller.
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = Policies.RequiresElevation)]
 [Route("[controller]")]
 [Produces(MediaTypeNames.Application.Json)]
 public class TMDbBoxSetsController : ControllerBase, IDisposable
