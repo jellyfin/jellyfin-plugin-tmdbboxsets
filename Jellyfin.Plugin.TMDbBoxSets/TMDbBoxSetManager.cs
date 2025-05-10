@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Enums;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -46,7 +47,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         _queuedTmdbCollectionIds = new HashSet<string>();
     }
 
-    private async Task AddMoviesToCollection(IReadOnlyCollection<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
+    private async Task AddMoviesToCollection(List<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
     {
         int minimumNumberOfMovies = Plugin.Instance.PluginConfiguration.MinimumNumberOfMovies;
         if (movies.Count < minimumNumberOfMovies)
@@ -136,7 +137,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         }).Select(b => b as BoxSet).ToList();
     }
 
-    private string GetTmdbCollectionName(IReadOnlyCollection<Movie> movies)
+    private string GetTmdbCollectionName(List<Movie> movies)
     {
         var collectionNames = movies
             .Select(movie => movie.TmdbCollectionName)
