@@ -2,12 +2,12 @@
 name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
 version: 11
-targetAbi: "10.9.0.0"
-framework: "net8.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
 owner: "jellyfin"
 overview: "Automatically create movie box sets based on TMDb collections"
 description: "Automatically create movie box sets based on TMDb collections"
-category: "Metadata"
+category: "MoviesAndShows"
 artifacts:
   - "Jellyfin.Plugin.TMDbBoxSets.dll"
 changelog: |-
