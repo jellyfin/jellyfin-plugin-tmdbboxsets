@@ -1,7 +1,7 @@
 ---
 name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
-version: 11
+version: 12
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "jellyfin"
@@ -11,13 +11,10 @@ category: "MoviesAndShows"
 artifacts:
   - "Jellyfin.Plugin.TMDbBoxSets.dll"
 changelog: |-
-  - 10.9 (#79) @crobibero
+  - Jellyfin 10.11 support (#101) @crobibero
+  - Update wiki link (#105) @thornbill
+  - fix: require admin privileges to refresh metadata (#95) @Theta-Dev
+  - Add analyzers and fix issues (#86) @Shadowghost
 
   ### Bug Fixes ###
-  - Only add primary versions to collections (#69) @lordwelch
-
-  ### Code or Repo Maintenance ###
-  - Update link to Jellyfin website (#77) @methbkts
-
-  ### CI & build changes ###
-  - fix: meta ci workflows (#70) @h1dden-da3m0n
+  - Fix for collections with < entries than requested (#74) @tommargar
