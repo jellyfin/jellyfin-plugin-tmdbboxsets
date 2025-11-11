@@ -58,6 +58,20 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
                 movies.Count,
                 string.Join(", ", movies.Select(m => m.Name)));
 
+            // If a box set exists but doesn't meet the minimum requirement, remove it
+            if (boxSet is not null)
+            {
+                _logger.LogInformation(
+                "Removing box set {BoxSetName} ({TmdbCollectionId}) as it no longer meets the minimum movie requirement",
+                boxSet.Name,
+                tmdbCollectionId);
+
+                _libraryManager.DeleteItem(boxSet, new DeleteOptions
+                {
+                    DeleteFileLocation = true
+                });
+            }
+
             return;
         }
 
@@ -122,7 +136,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         // We are only interested in movies that belong to a TMDb collection
         return movies.Where(m =>
             m.HasProviderId(MetadataProvider.TmdbCollection) &&
-            File.Exists(m.Path) && // This should fix the creation of collections missing/non-existent files
+            _libraryManager.GetLibraryOptions(m).Enabled &&
             !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
     }
 
@@ -179,6 +193,8 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             .GroupBy(m => m.GetProviderId(MetadataProvider.TmdbCollection))
             .ToArray();
 
+        CleanupOrphanedBoxSets(boxSets, movieCollections);
+
         _logger.LogInformation("Found {Count} TMDb collection(s) across all movies", movieCollections.Length);
         int index = 0;
         foreach (var movieCollection in movieCollections)
@@ -227,6 +243,12 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 
         var boxSets = GetAllBoxSetsFromLibrary();
         var movies = GetMoviesFromLibrary();
+        var movieCollections = movies
+            .GroupBy(m => m.GetProviderId(MetadataProvider.TmdbCollection))
+            .ToArray();
+
+        CleanupOrphanedBoxSets(boxSets, movieCollections);
+
         foreach (var tmdbCollectionId in tmdbCollectionIds)
         {
             var movieMatches = movies
@@ -235,6 +257,24 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
 
             AddMoviesToCollection(movieMatches, tmdbCollectionId, boxSet).GetAwaiter().GetResult();
+        }
+    }
+
+    private void CleanupOrphanedBoxSets(List<BoxSet> boxSets, IGrouping<string, Movie>[] movieCollections)
+    {
+        foreach (var boxSet in boxSets)
+        {
+            if (!movieCollections.Any(mc => mc.Key == boxSet.GetProviderId(MetadataProvider.Tmdb)))
+            {
+                _logger.LogInformation(
+                    "Removing orphaned box set {BoxSetName} ({TmdbCollectionId}) as there are no movies assigned to it anymore",
+                    boxSet.Name,
+                    boxSet.GetProviderId(MetadataProvider.Tmdb));
+                _libraryManager.DeleteItem(boxSet, new DeleteOptions
+                {
+                    DeleteFileLocation = true
+                });
+            }
         }
     }
 
