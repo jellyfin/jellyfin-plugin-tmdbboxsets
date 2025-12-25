@@ -1,8 +1,8 @@
 ---
 name: "TMDb Box Sets"
 guid: "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42"
-version: 12
-targetAbi: "10.11.0.0"
+version: 13
+targetAbi: "10.11.5.0"
 framework: "net9.0"
 owner: "jellyfin"
 overview: "Automatically create movie box sets based on TMDb collections"
@@ -11,10 +11,4 @@ category: "MoviesAndShows"
 artifacts:
   - "Jellyfin.Plugin.TMDbBoxSets.dll"
 changelog: |-
-  - Jellyfin 10.11 support (#101) @crobibero
-  - Update wiki link (#105) @thornbill
-  - fix: require admin privileges to refresh metadata (#95) @Theta-Dev
-  - Add analyzers and fix issues (#86) @Shadowghost
-
-  ### Bug Fixes ###
-  - Fix for collections with < entries than requested (#74) @tommargar
+  - Fix: Honor minimum movies setting and exclude disabled libraries (#94) (#113) @elio42
