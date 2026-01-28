@@ -121,8 +121,6 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 
     private List<Movie> GetMoviesFromLibrary()
     {
-        var allMovies = new List<Movie>();
-
         var libraryIds = Plugin.Instance.PluginConfiguration.LibraryIds
             .Select(id => Guid.TryParse(id, out var result) ? (Guid?)result : null)
             .OfType<Guid>()
@@ -130,31 +128,26 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 
         _logger.LogInformation("Filtering movies by library IDs: {LibraryIds}", string.Join(", ", libraryIds));
 
-        foreach (var libraryId in libraryIds)
-        {
-            var movies = _libraryManager.GetItemList(new InternalItemsQuery
-            {
-                IncludeItemTypes = [BaseItemKind.Movie],
-                IsVirtualItem = false,
-                OrderBy = new List<(ItemSortBy, SortOrder)>
+        return libraryIds
+            .SelectMany(libraryId =>
+                _libraryManager.GetItemList(new InternalItemsQuery
                 {
+                    IncludeItemTypes = [BaseItemKind.Movie],
+                    IsVirtualItem = false,
+                    OrderBy = new List<(ItemSortBy, SortOrder)>
+                    {
                     new(ItemSortBy.SortName, SortOrder.Ascending)
-                },
-                Recursive = true,
-                HasTmdbId = true,
-                ParentId = libraryId
-            }).Select(m => m as Movie);
-
-            // We are only interested in movies that belong to a TMDb collection
-            var filteredMovies = movies.Where(m =>
-                m.HasProviderId(MetadataProvider.TmdbCollection) &&
-                _libraryManager.GetLibraryOptions(m).Enabled &&
-                !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
-
-            allMovies.AddRange(filteredMovies);
-        }
-
-        return allMovies;
+                    },
+                    Recursive = true,
+                    HasTmdbId = true,
+                    ParentId = libraryId
+                })
+                .OfType<Movie>()
+                .Where(m =>
+                    m.HasProviderId(MetadataProvider.TmdbCollection) &&
+                    _libraryManager.GetLibraryOptions(m).Enabled &&
+                    !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))))
+            .ToList();
     }
 
     private List<BoxSet> GetAllBoxSetsFromLibrary()
