@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -123,10 +123,9 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
     {
         var allMovies = new List<Movie>();
 
-        // convert csv string of ids to Guid
-        var libraryIds = Plugin.Instance.PluginConfiguration.LibraryIdsCSV
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(Guid.Parse)
+        var libraryIds = Plugin.Instance.PluginConfiguration.LibraryIds
+            .Select(id => Guid.TryParse(id, out var result) ? (Guid?)result : null)
+            .OfType<Guid>()
             .ToList();
 
         _logger.LogInformation("Filtering movies by library IDs: {LibraryIds}", string.Join(", ", libraryIds));

@@ -51,7 +51,7 @@
                     $('#minimum-movies', page).val(config.MinimumNumberOfMovies || "2");
                     $('#strip-keywords').prop('checked', config.StripCollectionKeywords);
 
-                    var librariesRequest = {
+                    let librariesRequest = {
                         url: ApiClient.getUrl('Library/MediaFolders'),
                         type: 'GET',
                     };
@@ -65,23 +65,26 @@
                                     });
                                     return;
                                 }
+
+                                $('#libraries-container').empty();
+
                                 data.Items.forEach(function (library) {
                                     if (library.CollectionType !== 'movies') {
                                         return;
                                     }
-                                    var libraryContainer = $('<div>', {
+                                    let libraryContainer = $('<div>', {
                                         class: 'checkboxContainer checkboxContainer-withDescription',
                                     });
-                                    var label = $('<label>');
-                                    var input = $('<input>', {
+                                    let label = $('<label>');
+                                    let input = $('<input>', {
                                         type: 'checkbox',
                                         name: 'libraries',
                                         value: library.Id,
-                                        checked: config.LibraryIdsCSV.includes(library.Id),
+                                        checked: config.LibraryIds.includes(library.Id),
                                     }).attr('is', 'emby-checkbox');
-                                    var span = $('<span>').text(library.Name);
+                                    let span = $('<span>').text(library.Name);
                                     label.append(input, span);
-                                    var fieldDescription = $('<div>', {
+                                    let fieldDescription = $('<div>', {
                                         class: 'fieldDescription checkboxFieldDescription',
                                     }).text(library.Path);
                                     libraryContainer.append(label, fieldDescription);
@@ -106,9 +109,8 @@
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || "2";
                     config.StripCollectionKeywords = $('#strip-keywords').prop('checked');
-                    config.LibraryIdsCSV = Array.from($('input[name="libraries"]:checked'))
-                        .map((e) => e.value)
-                        .join(',');
+                    config.LibraryIds = Array.from($('input[name="libraries"]:checked'))
+                        .map((e) => e.value);
 
                     ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
                 });
