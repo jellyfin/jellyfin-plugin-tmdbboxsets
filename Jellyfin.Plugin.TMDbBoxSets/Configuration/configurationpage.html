@@ -4,7 +4,7 @@
     <title>TMDb Box Sets</title>
 </head>
 <body>
-    <div data-role="page" class="page type-interior pluginConfigurationPage tbsConfigurationPage" data-require="emby-input,emby-button">
+    <div data-role="page" class="page type-interior pluginConfigurationPage tbsConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
         <div data-role="content">
             <div class="content-primary">
                 <form class="tbsConfigurationPage">
@@ -32,6 +32,30 @@
                             Remove the "Collection" suffix from titles when it exists in the name.
                         </div>
                     </div>
+                    <div class="checkboxListContainer">
+                        <h3 class="checkboxListLabel">Enabled Libraries</h3>
+                        <div id="excluded-libraries" class="checkboxList paperList checkboxList-paperList" style="max-height: 14em; overflow-y: auto; padding: .5em !important;"></div>
+                        <div class="fieldDescription">
+                            Select movie libraries to include in box set creation. Movies from unchecked libraries will be excluded.
+                        </div>
+                    </div>
+                    <div class="verticalSection">
+                        <h3 class="checkboxListLabel">Exclude TMDb Collections</h3>
+                        <div class="inputContainer" style="display:flex;gap:.5em;align-items:stretch;">
+                            <div style="flex:1;">
+                                <select is="emby-select" id="excl-select" style="width:100%;"></select>
+                            </div>
+                            <button is="emby-button" type="button" id="excl-add" class="raised" style="display:flex;align-items:center;justify-content:center;min-height:0;padding:0 1em;">Add</button>
+                        </div>
+                        <div id="excl-list" class="paperList" style="margin-top:.5em;padding:.25em .5em;min-height:2em;"></div>
+                        <div class="fieldDescription">Selected collections will be excluded from box set creation.</div>
+                    </div>
+                    <div class="verticalSection">
+                        <h3 class="checkboxListLabel">Merge Boxsets</h3>
+                        <div id="merge-groups-container"></div>
+                        <button is="emby-button" type="button" id="merge-add-group" class="raised">Add Merge Group</button>
+                        <div class="fieldDescription">Define collections to merge into one box set. Execution will be enabled in a future update.</div>
+                    </div>
                     <br/>
                     <button is="emby-button" type="button" class="raised block" id="refresh-library"><span>${ButtonScanAllLibraries}</span></button>
                     <button is="emby-button" type="submit" class="raised button-submit block"><span>${Save}</span></button>
@@ -40,36 +64,257 @@
         </div>
         <script type="text/javascript">
             var pluginId = "bc4aad2e-d3d0-4725-a5e2-fd07949e5b42";
+            var _candidates = [];
+
+            function htmlEscape(s) {
+                return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            function populateSelect(selectEl, candidates) {
+                selectEl.innerHTML = '<option value="">Select collection</option>' + candidates.map(function (c) {
+                    return '<option value="' + htmlEscape(c.TmdbCollectionId) + '">' + htmlEscape(c.CollectionName) + '</option>';
+                }).join('');
+                selectEl.value = '';
+            }
+
+            function initializeDynamicSelect(selectEl) {
+                if (!selectEl || selectEl.classList.contains('emby-select')) {
+                    return;
+                }
+
+                selectEl.classList.add('emby-select', 'emby-select-withcolor');
+
+                if (!selectEl.parentNode.querySelector('.selectArrowContainer')) {
+                    selectEl.parentNode.insertAdjacentHTML(
+                        'beforeend',
+                        '<div class="selectArrowContainer"><div style="visibility:hidden;display:none;">0</div><span class="selectArrow material-icons keyboard_arrow_down" aria-hidden="true"></span></div>');
+                }
+            }
+
+            function addTagRow(listEl, id, name) {
+                var div = document.createElement('div');
+                div.setAttribute('data-id', id);
+                div.style.cssText = 'display:flex;align-items:center;gap:.5em;padding:.2em 0;';
+                div.innerHTML = '<span style="flex:1;">' + htmlEscape(name) + '</span>'
+                    + '<button type="button" class="raised emby-button remove-tag" style="min-width:0;padding:0 .5em;">\u00d7</button>';
+                listEl.appendChild(div);
+            }
+
+            function createMergeGroupCard(group) {
+                var opts = '<option value="">Select collection</option>' + _candidates.map(function (c) {
+                    return '<option value="' + htmlEscape(c.TmdbCollectionId) + '">' + htmlEscape(c.CollectionName) + '</option>';
+                }).join('');
+                var card = document.createElement('div');
+                card.className = 'paperList merge-group-card';
+                card.style.cssText = 'padding:.5em .75em;margin-bottom:.5em;';
+                card.innerHTML =
+                    '<div style="display:flex;align-items:stretch;gap:.5em;margin-bottom:.5em;">'
+                    + '<input type="text" is="emby-input" class="emby-input merge-name" placeholder="Display Name" value="' + htmlEscape(group ? group.DisplayName : '') + '" style="flex:1;min-width:0;"/>'
+                    + '<button type="button" class="raised emby-button remove-merge-group" style="display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;padding:0 .9em;">\u2715</button>'
+                    + '</div>'
+                    + '<div style="display:flex;gap:.5em;align-items:stretch;margin-bottom:.4em;">'
+                    + '<select is="emby-select" class="merge-select" style="flex:1;">' + opts + '</select>'
+                    + '<button type="button" class="raised emby-button merge-add-secondary" style="display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;padding:0 .9em;">Add</button>'
+                    + '</div>'
+                    + '<div class="merge-secondary-list"></div>';
+                if (group) {
+                    var secondaryList = card.querySelector('.merge-secondary-list');
+                    (group.SecondaryTmdbCollectionIds || []).forEach(function (secondaryId) {
+                        var c = _candidates.find(function (x) { return x.TmdbCollectionId === secondaryId; });
+                        addTagRow(secondaryList, secondaryId, c ? c.CollectionName : secondaryId);
+                    });
+                }
+
+                initializeDynamicSelect(card.querySelector('.merge-select'));
+                return card;
+            }
+
+            function renderExcludedLibraries(folders, excludedLibraries) {
+                var container = document.getElementById('excluded-libraries');
+                container.innerHTML = '';
+                if (!folders.length) {
+                    var emptyState = document.createElement('div');
+                    emptyState.className = 'fieldDescription';
+                    emptyState.textContent = 'No movie libraries were found.';
+                    container.appendChild(emptyState);
+                    return;
+                }
+                folders.forEach(function (folder) {
+                    var label = document.createElement('label');
+                    label.style.cssText = 'display:block;position:relative;margin:0;padding:.2em 0 .2em 2.2em;';
+                    var checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.setAttribute('is', 'emby-checkbox');
+                    checkbox.className = 'excluded-library-checkbox';
+                    checkbox.style.cssText = 'position:absolute;left:0;top:50%;transform:translateY(-50%);';
+                    checkbox.value = folder.Name;
+                    checkbox.checked = excludedLibraries.indexOf(folder.Name) === -1;
+                    var text = document.createElement('span');
+                    text.textContent = folder.Name;
+                    label.appendChild(checkbox);
+                    label.appendChild(text);
+                    container.appendChild(label);
+                });
+            }
+
+            function getExcludedLibraries(page) {
+                var checkboxes = page.querySelectorAll('.excluded-library-checkbox');
+                return Array.from(checkboxes)
+                    .filter(function (checkbox) { return !checkbox.checked; })
+                    .map(function (checkbox) { return checkbox.value; });
+            }
+
+            function isSecondaryUsedInOtherMergeGroup(currentCard, secondaryId) {
+                return Array.from(document.querySelectorAll('.merge-group-card'))
+                    .some(function (card) {
+                        return card !== currentCard && card.querySelector('.merge-secondary-list [data-id="' + secondaryId + '"]');
+                    });
+            }
+
+            function hasDuplicateMergeSecondaries(mergeGroups) {
+                var seen = Object.create(null);
+                for (var i = 0; i < mergeGroups.length; i++) {
+                    var secondaries = mergeGroups[i].SecondaryTmdbCollectionIds || [];
+                    for (var j = 0; j < secondaries.length; j++) {
+                        var secondaryId = secondaries[j];
+                        if (seen[secondaryId]) {
+                            return true;
+                        }
+                        seen[secondaryId] = true;
+                    }
+                }
+                return false;
+            }
+
+            document.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-tag')) {
+                    e.target.closest('[data-id]').remove();
+                } else if (e.target.classList.contains('remove-merge-group')) {
+                    e.target.closest('.merge-group-card').remove();
+                } else if (e.target.classList.contains('merge-add-secondary')) {
+                    var card = e.target.closest('.merge-group-card');
+                    var sel = card.querySelector('.merge-select');
+                    if (!sel.value) { return; }
+                    if (isSecondaryUsedInOtherMergeGroup(card, sel.value)) {
+                        Dashboard.alert('This TMDb collection is already used in another merge group.');
+                        sel.value = '';
+                        return;
+                    }
+                    var secondaryList = card.querySelector('.merge-secondary-list');
+                    if (!secondaryList.querySelector('[data-id="' + sel.value + '"]')) {
+                        addTagRow(secondaryList, sel.value, sel.options[sel.selectedIndex].text);
+                    }
+                    sel.value = '';
+                }
+            });
 
             $('.tbsConfigurationPage').on('pageshow', function () {
                 Dashboard.showLoadingMsg();
                 var page = this;
-                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                Promise.all([
+                    ApiClient.getPluginConfiguration(pluginId),
+                    ApiClient.getJSON(ApiClient.getUrl('Library/VirtualFolders')),
+                    ApiClient.getJSON(ApiClient.getUrl('TMDbBoxSets/Collections'))
+                ]).then(function (results) {
+                    var config = results[0];
+                    var folders = results[1];
+                    _candidates = results[2];
+
                     $('#minimum-movies', page).val(config.MinimumNumberOfMovies || "2");
                     document.getElementById('strip-keywords').checked = config.StripCollectionKeywords;
+
+                    var movieFolders = folders.filter(function (f) { return f.CollectionType === 'movies'; });
+                    renderExcludedLibraries(movieFolders, config.ExcludedLibraries || []);
+
+                    populateSelect(document.getElementById('excl-select'), _candidates);
+
+                    var exclList = document.getElementById('excl-list');
+                    exclList.innerHTML = '';
+                    (config.ExcludedTmdbCollections || []).forEach(function (id) {
+                        var c = _candidates.find(function (x) { return x.TmdbCollectionId === id; });
+                        addTagRow(exclList, id, c ? c.CollectionName : id);
+                    });
+
+                    var mergeContainer = document.getElementById('merge-groups-container');
+                    mergeContainer.innerHTML = '';
+                    (config.MergeGroups || []).forEach(function (group) {
+                        mergeContainer.appendChild(createMergeGroupCard(group));
+                    });
+
+                }).catch(function () {
+                    Dashboard.alert({
+                        message: 'Failed to load TMDb Box Sets configuration.'
+                    });
+                }).finally(function () {
                     Dashboard.hideLoadingMsg();
                 });
             });
 
             $('.tbsConfigurationPage').on('submit', function () {
                 Dashboard.showLoadingMsg();
-
                 var minimumNumberOfMovies = $('#minimum-movies').val();
+                var excludedLibraries = getExcludedLibraries(this);
+                var excludedTmdbCollections = Array.from(document.getElementById('excl-list').querySelectorAll('[data-id]'))
+                    .map(function (r) { return r.getAttribute('data-id'); });
+                var mergeGroups = Array.from(document.getElementById('merge-groups-container').querySelectorAll('.merge-group-card'))
+                    .map(function (card) {
+                        var secondaryIds = Array.from(card.querySelectorAll('.merge-secondary-list [data-id]'))
+                            .map(function (r) { return r.getAttribute('data-id'); });
+                        return {
+                            DisplayName: card.querySelector('.merge-name').value,
+                            PrimaryTmdbCollectionId: secondaryIds[0] || '',
+                            SecondaryTmdbCollectionIds: secondaryIds
+                        };
+                    });
+
+                if (hasDuplicateMergeSecondaries(mergeGroups)) {
+                    Dashboard.alert('Each TMDb collection can only be used in one merge group.');
+                    Dashboard.hideLoadingMsg();
+                    return false;
+                }
+
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || "2";
+                    config.MinimumNumberOfMovies = parseInt(minimumNumberOfMovies) || 2;
                     config.StripCollectionKeywords = document.getElementById('strip-keywords').checked;
-
-                    ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
+                    config.ExcludedLibraries = excludedLibraries;
+                    config.ExcludedTmdbCollections = excludedTmdbCollections;
+                    config.MergeGroups = mergeGroups;
+                    ApiClient.updatePluginConfiguration(pluginId, config)
+                        .then(Dashboard.processPluginConfigurationUpdateResult)
+                        .catch(function () {
+                            Dashboard.hideLoadingMsg();
+                            Dashboard.alert({
+                                message: 'Failed to save TMDb Box Sets configuration.'
+                            });
+                        });
+                }).catch(function () {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert({
+                        message: 'Failed to load TMDb Box Sets configuration before saving.'
+                    });
                 });
-
                 return false;
             });
+
+            $('#excl-add').on('click', function () {
+                var sel = document.getElementById('excl-select');
+                if (!sel.value) { return; }
+                var list = document.getElementById('excl-list');
+                if (!list.querySelector('[data-id="' + sel.value + '"]')) {
+                    addTagRow(list, sel.value, sel.options[sel.selectedIndex].text);
+                }
+                sel.value = '';
+            });
+
+            $('#merge-add-group').on('click', function () {
+                document.getElementById('merge-groups-container').appendChild(createMergeGroupCard(null));
+            });
+
             $('#refresh-library').on('click', function () {
                 var request = {
                     url: ApiClient.getUrl('TMDbBoxSets/Refresh'),
                     type: 'POST'
                 };
-
                 ApiClient.fetch(request).then(function () {
                     Dashboard.alert("Library scan queued");
                 }).catch(function () {
