@@ -204,7 +204,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             var tmdbCollectionId = movieCollection.Key;
 
             var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
-            await AddMoviesToCollection(movieCollection.Where(m => string.IsNullOrEmpty(m.PrimaryVersionId)).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
+            await AddMoviesToCollection(movieCollection.Where(m => !m.PrimaryVersionId.HasValue).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
             index++;
         }
 
@@ -252,7 +252,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         foreach (var tmdbCollectionId in tmdbCollectionIds)
         {
             var movieMatches = movies
-                .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId && string.IsNullOrEmpty(m.PrimaryVersionId))
+                .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId && !m.PrimaryVersionId.HasValue)
                 .ToList();
             var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
 
