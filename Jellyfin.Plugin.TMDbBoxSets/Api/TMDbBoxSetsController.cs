@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Mime;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Api;
@@ -38,6 +40,18 @@ public class TMDbBoxSetsController : ControllerBase, IDisposable
     {
         _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, boxsetLogger);
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Gets all TMDb collections discovered across library movies.
+    /// </summary>
+    /// <returns>A list of discovered TMDb collections.</returns>
+    [HttpGet("Collections")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<IEnumerable<TmdbCollectionDto>> GetCollections()
+    {
+        return Ok(_tmDbBoxSetManager.GetCandidateCollections()
+            .Select(c => new TmdbCollectionDto(c.TmdbCollectionId, c.CollectionName)));
     }
 
     /// <summary>
