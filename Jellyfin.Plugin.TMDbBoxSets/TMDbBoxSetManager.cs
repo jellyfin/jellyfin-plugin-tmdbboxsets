@@ -204,7 +204,13 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             var tmdbCollectionId = movieCollection.Key;
 
             var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
-            await AddMoviesToCollection(movieCollection.Where(m => string.IsNullOrEmpty(m.PrimaryVersionId)).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
+            // Include every distinct movie the user has in this collection, collapsing
+            // alternate file-versions of the same film (preferring the primary version).
+            var moviesInCollection = movieCollection
+                .GroupBy(m => m.GetProviderId(MetadataProvider.Tmdb))
+                .Select(g => g.FirstOrDefault(m => string.IsNullOrEmpty(m.PrimaryVersionId)) ?? g.First())
+                .ToList();
+            await AddMoviesToCollection(moviesInCollection, tmdbCollectionId, boxSet).ConfigureAwait(false);
             index++;
         }
 
