@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Enums;
+using Jellyfin.Extensions;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -204,7 +205,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             var tmdbCollectionId = movieCollection.Key;
 
             var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
-            await AddMoviesToCollection(movieCollection.Where(m => string.IsNullOrEmpty(m.PrimaryVersionId)).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
+            await AddMoviesToCollection(movieCollection.Where(m => m.PrimaryVersionId.IsNullOrEmpty()).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
             index++;
         }
 
@@ -252,7 +253,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         foreach (var tmdbCollectionId in tmdbCollectionIds)
         {
             var movieMatches = movies
-                .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId && string.IsNullOrEmpty(m.PrimaryVersionId))
+                .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId && m.PrimaryVersionId.IsNullOrEmpty())
                 .ToList();
             var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
 
