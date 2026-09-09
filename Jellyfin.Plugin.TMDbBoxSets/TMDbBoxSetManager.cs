@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -122,23 +122,33 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 
     private List<Movie> GetMoviesFromLibrary()
     {
-        var movies = _libraryManager.GetItemList(new InternalItemsQuery
-        {
-            IncludeItemTypes = [BaseItemKind.Movie],
-            IsVirtualItem = false,
-            OrderBy = new List<(ItemSortBy, SortOrder)>
-            {
-                new(ItemSortBy.SortName, SortOrder.Ascending)
-            },
-            Recursive = true,
-            HasTmdbId = true
-        }).Select(m => m as Movie);
+        var libraryIds = Plugin.Instance.PluginConfiguration.LibraryIds
+            .Select(id => Guid.TryParse(id, out var result) ? (Guid?)result : null)
+            .OfType<Guid>()
+            .ToList();
 
-        // We are only interested in movies that belong to a TMDb collection
-        return movies.Where(m =>
-            m.HasProviderId(MetadataProvider.TmdbCollection) &&
-            _libraryManager.GetLibraryOptions(m).Enabled &&
-            !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))).ToList();
+        _logger.LogInformation("Filtering movies by library IDs: {LibraryIds}", string.Join(", ", libraryIds));
+
+        return libraryIds
+            .SelectMany(libraryId =>
+                _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = [BaseItemKind.Movie],
+                    IsVirtualItem = false,
+                    OrderBy = new List<(ItemSortBy, SortOrder)>
+                    {
+                    new(ItemSortBy.SortName, SortOrder.Ascending)
+                    },
+                    Recursive = true,
+                    HasTmdbId = true,
+                    ParentId = libraryId
+                })
+                .OfType<Movie>()
+                .Where(m =>
+                    m.HasProviderId(MetadataProvider.TmdbCollection) &&
+                    _libraryManager.GetLibraryOptions(m).Enabled &&
+                    !string.IsNullOrWhiteSpace(m.GetProviderId(MetadataProvider.TmdbCollection))))
+            .ToList();
     }
 
     private List<BoxSet> GetAllBoxSetsFromLibrary()
