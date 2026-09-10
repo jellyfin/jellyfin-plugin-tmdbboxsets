@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -27,11 +26,15 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
     private readonly ICollectionManager _collectionManager;
     private readonly Timer _timer;
     private readonly HashSet<string> _queuedTmdbCollectionIds;
+    private readonly object _queueLock = new();
     private readonly ILogger<TMDbBoxSetManager> _logger;
 
     private readonly Regex _collectionRegex = new Regex(
         @"(( |( - ))+\(?\[?(colecci[oó]n|collection|f[ií]lmreihe|поредица|kolekce|系列|시리즈|samling|kolekcia|saga|מארז|კრებული|collectie|gyűjtemény|collezione|シリーズ|samlingen|مجموعه|kolekcja|coletânea|coleção|colecția|коллекция|รวมชุด|seri|кіноцикл|kolleksiyasi)\)?\]?)$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private int _isProcessing;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TMDbBoxSetManager"/> class.
@@ -120,6 +123,20 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         await _collectionManager.AddToCollectionAsync(boxSet.Id, itemsToAdd).ConfigureAwait(false);
     }
 
+    private async Task<bool> TryAddMoviesToCollection(List<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
+    {
+        try
+        {
+            await AddMoviesToCollection(movies, tmdbCollectionId, boxSet).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update the box set for TMDb collection {TmdbCollectionId}", tmdbCollectionId);
+            return false;
+        }
+    }
+
     private List<Movie> GetMoviesFromLibrary()
     {
         var movies = _libraryManager.GetItemList(new InternalItemsQuery
@@ -132,7 +149,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             },
             Recursive = true,
             HasTmdbId = true
-        }).Select(m => m as Movie);
+        }).OfType<Movie>();
 
         // We are only interested in movies that belong to a TMDb collection
         return movies.Where(m =>
@@ -149,7 +166,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             CollapseBoxSetItems = false,
             Recursive = true,
             HasTmdbId = true
-        }).Select(b => b as BoxSet).ToList();
+        }).OfType<BoxSet>().ToList();
     }
 
     private string GetTmdbCollectionName(List<Movie> movies)
@@ -198,15 +215,25 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 
         _logger.LogInformation("Found {Count} TMDb collection(s) across all movies", movieCollections.Length);
         int index = 0;
+        int failed = 0;
         foreach (var movieCollection in movieCollections)
         {
             progress?.Report(100.0 * index / movieCollections.Length);
 
             var tmdbCollectionId = movieCollection.Key;
 
-            var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
-            await AddMoviesToCollection(movieCollection.Where(m => m.PrimaryVersionId.IsNullOrEmpty()).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false);
+            var boxSet = boxSets.Find(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
+            if (!await TryAddMoviesToCollection(movieCollection.Where(m => m.PrimaryVersionId.IsNullOrEmpty()).ToList(), tmdbCollectionId, boxSet).ConfigureAwait(false))
+            {
+                failed++;
+            }
+
             index++;
+        }
+
+        if (failed > 0)
+        {
+            _logger.LogWarning("{FailedCount} of {Count} TMDb collection(s) could not be updated, see the errors above", failed, movieCollections.Length);
         }
 
         progress?.Report(100);
@@ -227,10 +254,30 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             return;
         }
 
-        _queuedTmdbCollectionIds.Add(tmdbCollectionId);
+        lock (_queueLock)
+        {
+            _queuedTmdbCollectionIds.Add(tmdbCollectionId);
+        }
 
         // Restart the timer. After idling for 5 seconds it should trigger the callback. This is to avoid clobbering during a large library update.
-        _timer.Change(5000, Timeout.Infinite);
+        ArmTimer();
+    }
+
+    private void ArmTimer()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            _timer.Change(5000, Timeout.Infinite);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Raced with Dispose, nothing left to do
+        }
     }
 
     private void OnTimerElapsed()
@@ -238,10 +285,66 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         // Stop the timer until next update
         _timer.Change(Timeout.Infinite, Timeout.Infinite);
 
-        var tmdbCollectionIds = _queuedTmdbCollectionIds.ToArray();
-        // Clear the queue now, TODO what if it crashes? Should it be cleared after it's done?
-        _queuedTmdbCollectionIds.Clear();
+        // Fire and forget: ProcessQueuedCollections handles all of its own exceptions. Anything
+        // escaping a timer callback is an unhandled exception on a thread pool thread, which
+        // takes the entire server process down with it.
+        _ = ProcessQueuedCollections();
+    }
 
+    private async Task ProcessQueuedCollections()
+    {
+        // Only ever run one pass at a time. Library updates keep re-arming the timer while a pass
+        // is in flight, and every concurrent pass loads the full movie and box set lists into
+        // memory, so overlapping passes can exhaust the server's memory during a library scan.
+        if (Interlocked.CompareExchange(ref _isProcessing, 1, 0) == 1)
+        {
+            // A pass is already running and will pick up whatever is queued by then
+            return;
+        }
+
+        try
+        {
+            while (true)
+            {
+                string[] tmdbCollectionIds;
+                lock (_queueLock)
+                {
+                    tmdbCollectionIds = _queuedTmdbCollectionIds.ToArray();
+                    _queuedTmdbCollectionIds.Clear();
+                }
+
+                if (tmdbCollectionIds.Length == 0)
+                {
+                    break;
+                }
+
+                await UpdateBoxSets(tmdbCollectionIds).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while updating box sets for the queued TMDb collections");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isProcessing, 0);
+        }
+
+        // Anything queued between the last drain and releasing the guard above needs a new pass
+        bool pending;
+        lock (_queueLock)
+        {
+            pending = _queuedTmdbCollectionIds.Count > 0;
+        }
+
+        if (pending)
+        {
+            ArmTimer();
+        }
+    }
+
+    private async Task UpdateBoxSets(string[] tmdbCollectionIds)
+    {
         var boxSets = GetAllBoxSetsFromLibrary();
         var movies = GetMoviesFromLibrary();
         var movieCollections = movies
@@ -255,9 +358,9 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             var movieMatches = movies
                 .Where(m => m.GetProviderId(MetadataProvider.TmdbCollection) == tmdbCollectionId && m.PrimaryVersionId.IsNullOrEmpty())
                 .ToList();
-            var boxSet = boxSets.FirstOrDefault(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
+            var boxSet = boxSets.Find(b => b.GetProviderId(MetadataProvider.Tmdb) == tmdbCollectionId);
 
-            AddMoviesToCollection(movieMatches, tmdbCollectionId, boxSet).GetAwaiter().GetResult();
+            await TryAddMoviesToCollection(movieMatches, tmdbCollectionId, boxSet).ConfigureAwait(false);
         }
     }
 
@@ -271,10 +374,18 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
                     "Removing orphaned box set {BoxSetName} ({TmdbCollectionId}) as there are no movies assigned to it anymore",
                     boxSet.Name,
                     boxSet.GetProviderId(MetadataProvider.Tmdb));
-                _libraryManager.DeleteItem(boxSet, new DeleteOptions
+
+                try
                 {
-                    DeleteFileLocation = true
-                });
+                    _libraryManager.DeleteItem(boxSet, new DeleteOptions
+                    {
+                        DeleteFileLocation = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to remove orphaned box set {BoxSetName}", boxSet.Name);
+                }
             }
         }
     }
@@ -310,6 +421,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
     {
         if (dispose)
         {
+            _disposed = true;
             _timer.Dispose();
         }
     }
