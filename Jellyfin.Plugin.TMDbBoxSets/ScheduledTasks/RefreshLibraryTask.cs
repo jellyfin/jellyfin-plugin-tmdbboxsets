@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -22,16 +24,20 @@ public class RefreshLibraryTask : IScheduledTask, IDisposable
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+    /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="fileSystem">Instance of the <see cref="IFileSystem"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{RefreshLibraryTask}"/> interface.</param>
     /// <param name="boxsetLogger">Instance of the <see cref="ILogger{TMDbBoxSetManager}"/> interface.</param>
     public RefreshLibraryTask(
         ILibraryManager libraryManager,
         ICollectionManager collectionManager,
+        IProviderManager providerManager,
+        IFileSystem fileSystem,
         ILogger<RefreshLibraryTask> logger,
         ILogger<TMDbBoxSetManager> boxsetLogger)
     {
         _logger = logger;
-        _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, boxsetLogger);
+        _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, providerManager, fileSystem, boxsetLogger);
     }
 
     /// <inheritdoc/>
