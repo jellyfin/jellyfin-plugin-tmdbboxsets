@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.IO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -28,15 +30,19 @@ public class TMDbBoxSetsController : ControllerBase, IDisposable
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+    /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="fileSystem">Instance of the <see cref="IFileSystem"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{TMDbBoxSetsController}"/> interface.</param>
     /// <param name="boxsetLogger">Instance of the <see cref="ILogger{TMDbBoxSetManager}"/> interface.</param>
     public TMDbBoxSetsController(
         ILibraryManager libraryManager,
         ICollectionManager collectionManager,
+        IProviderManager providerManager,
+        IFileSystem fileSystem,
         ILogger<TMDbBoxSetsController> logger,
         ILogger<TMDbBoxSetManager> boxsetLogger)
     {
-        _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, boxsetLogger);
+        _tmDbBoxSetManager = new TMDbBoxSetManager(libraryManager, collectionManager, providerManager, fileSystem, boxsetLogger);
         _logger = logger;
     }
 

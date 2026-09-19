@@ -11,7 +11,9 @@ using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.IO;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -24,6 +26,8 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 {
     private readonly ILibraryManager _libraryManager;
     private readonly ICollectionManager _collectionManager;
+    private readonly IProviderManager _providerManager;
+    private readonly IFileSystem _fileSystem;
     private readonly Timer _timer;
     private readonly HashSet<string> _queuedTmdbCollectionIds;
     private readonly object _queueLock = new();
@@ -41,11 +45,15 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+    /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
+    /// <param name="fileSystem">Instance of the <see cref="IFileSystem"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{TMDbBoxSetManager}"/> interface.</param>
-    public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbBoxSetManager> logger)
+    public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, IProviderManager providerManager, IFileSystem fileSystem, ILogger<TMDbBoxSetManager> logger)
     {
         _libraryManager = libraryManager;
         _collectionManager = collectionManager;
+        _providerManager = providerManager;
+        _fileSystem = fileSystem;
         _logger = logger;
         _timer = new Timer(_ => OnTimerElapsed(), null, Timeout.Infinite, Timeout.Infinite);
         _queuedTmdbCollectionIds = new HashSet<string>();
@@ -80,6 +88,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         }
 
         // Create the box set if it doesn't exist, but don't add anything to it on creation
+        var createdBoxSet = false;
         if (boxSet is null)
         {
             var tmdbCollectionName = GetTmdbCollectionName(movies);
@@ -103,6 +112,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
                 Name = tmdbCollectionName,
                 ProviderIds = new Dictionary<string, string> { { MetadataProvider.Tmdb.ToString(), tmdbCollectionId } }
             }).ConfigureAwait(false);
+            createdBoxSet = true;
         }
 
         var itemsToAdd = movies
@@ -116,11 +126,42 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
                 "The movies {MovieNames} is/are already in their proper box set, {BoxSetName}",
                 string.Join(", ", movies.Select(m => m.Name)),
                 boxSet.Name);
-
-            return;
+        }
+        else
+        {
+            await _collectionManager.AddToCollectionAsync(boxSet.Id, itemsToAdd).ConfigureAwait(false);
         }
 
-        await _collectionManager.AddToCollectionAsync(boxSet.Id, itemsToAdd).ConfigureAwait(false);
+        if (createdBoxSet)
+        {
+            // Has to happen after the movies are linked: linking saves a collection.xml holding the
+            // name we just picked, and a local name wins over anything a remote provider returns.
+            QueueMetadataRefresh(boxSet);
+        }
+    }
+
+    /// <summary>
+    /// Asks the metadata providers to name the freshly created box set.
+    /// </summary>
+    /// <param name="boxSet">The box set that was just created.</param>
+    /// <remarks>
+    /// The name a box set is created with comes from the movies' TMDb collection name, which TMDb
+    /// reports in the collection's own language rather than the preferred metadata language, so it can
+    /// read as the original title even where a translation exists. Jellyfin only overwrites an existing
+    /// name when asked to replace metadata, so ask for that once, on the box set we just named. The TMDb
+    /// box set provider then looks the collection up in the preferred metadata language and fills in the
+    /// translated name, overview and images, exactly as identifying the box set by hand would.
+    /// </remarks>
+    private void QueueMetadataRefresh(BoxSet boxSet)
+    {
+        _providerManager.QueueRefresh(
+            boxSet.Id,
+            new MetadataRefreshOptions(new DirectoryService(_fileSystem))
+            {
+                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllMetadata = true
+            },
+            RefreshPriority.High);
     }
 
     private async Task<bool> TryAddMoviesToCollection(List<Movie> movies, string tmdbCollectionId, BoxSet boxSet)
