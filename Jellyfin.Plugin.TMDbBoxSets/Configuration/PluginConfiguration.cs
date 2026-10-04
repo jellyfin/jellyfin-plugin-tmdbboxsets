@@ -1,4 +1,5 @@
-﻿using MediaBrowser.Model.Plugins;
+﻿using System.Collections.ObjectModel;
+using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.TMDbBoxSets.Configuration;
 
@@ -25,4 +26,19 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether collection keywords should be stripped from the collection name.
     /// </summary>
     public bool StripCollectionKeywords { get; set; }
+
+    /// <summary>
+    /// Gets the list of library names to exclude from box set creation.
+    /// </summary>
+    public Collection<string> ExcludedLibraries { get; init; } = [];
+
+    /// <summary>
+    /// Gets the list of TMDb collection IDs to exclude from box set creation.
+    /// </summary>
+    public Collection<string> ExcludedTmdbCollections { get; init; } = [];
+
+    /// <summary>
+    /// Gets the list of staged merge groups.
+    /// </summary>
+    public Collection<MergeGroup> MergeGroups { get; init; } = [];
 }
