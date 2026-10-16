@@ -30,7 +30,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <summary>
     /// Gets the plugin instance.
     /// </summary>
-    public static Plugin Instance { get; private set; }
+    public static Plugin Instance { get; private set; } = null!;
 
     /// <inheritdoc/>
     public override string Description => "Automatically create movie box sets based on TMDb collections";
