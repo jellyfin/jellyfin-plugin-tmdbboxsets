@@ -11,6 +11,7 @@ using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,7 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
 {
     private readonly ILibraryManager _libraryManager;
     private readonly ICollectionManager _collectionManager;
+    private readonly IProviderManager _providerManager;
     private readonly Timer _timer;
     private readonly HashSet<string> _queuedTmdbCollectionIds;
     private readonly object _queueLock = new();
@@ -41,11 +43,13 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
     /// </summary>
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+    /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
     /// <param name="logger">Instance of the <see cref="ILogger{TMDbBoxSetManager}"/> interface.</param>
-    public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, ILogger<TMDbBoxSetManager> logger)
+    public TMDbBoxSetManager(ILibraryManager libraryManager, ICollectionManager collectionManager, IProviderManager providerManager, ILogger<TMDbBoxSetManager> logger)
     {
         _libraryManager = libraryManager;
         _collectionManager = collectionManager;
+        _providerManager = providerManager;
         _logger = logger;
         _timer = new Timer(_ => OnTimerElapsed(), null, Timeout.Infinite, Timeout.Infinite);
         _queuedTmdbCollectionIds = new HashSet<string>();
@@ -82,7 +86,8 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
         // Create the box set if it doesn't exist, but don't add anything to it on creation
         if (boxSet is null)
         {
-            var tmdbCollectionName = GetTmdbCollectionName(movies);
+            var tmdbCollectionName = await GetRemoteCollectionName(tmdbCollectionId).ConfigureAwait(false)
+                ?? GetTmdbCollectionName(movies);
             if (string.IsNullOrWhiteSpace(tmdbCollectionName))
             {
                 _logger.LogError(
@@ -167,6 +172,29 @@ public class TMDbBoxSetManager : IHostedService, IDisposable
             Recursive = true,
             HasTmdbId = true
         }).OfType<BoxSet>().ToList();
+    }
+
+    /// <summary>
+    /// Looks up the name of a TMDb collection through the metadata providers.
+    /// </summary>
+    /// <param name="tmdbCollectionId">The id of the TMDb collection.</param>
+    /// <returns>The collection's name in the preferred metadata language, or <c>null</c> when it could not be looked up.</returns>
+    /// <remarks>
+    /// The collection name carried on the movies comes from belongs_to_collection on the TMDb movie
+    /// endpoint, which names the collection in its own language no matter which one was asked for.
+    /// Looking the collection up directly is what identifying a box set by hand does, and it honors
+    /// the preferred metadata language.
+    /// </remarks>
+    private async Task<string> GetRemoteCollectionName(string tmdbCollectionId)
+    {
+        var searchInfo = new BoxSetInfo();
+        searchInfo.SetProviderId(MetadataProvider.Tmdb, tmdbCollectionId);
+
+        var results = await _providerManager.GetRemoteSearchResults<BoxSet, BoxSetInfo>(
+            new RemoteSearchQuery<BoxSetInfo> { SearchInfo = searchInfo },
+            CancellationToken.None).ConfigureAwait(false);
+
+        return results.FirstOrDefault()?.Name;
     }
 
     private string GetTmdbCollectionName(List<Movie> movies)
